@@ -1,0 +1,9 @@
+# Runtime dependencies for the CPU notebook. All of these are normally present
+# on the Kaggle Python image EXCEPT possibly `zarr` -- see README (offline zarr).
+# Versions are lower bounds known to work; the notebook uses only stable APIs.
+numpy>=1.24
+scipy>=1.10
+pandas>=2.0
+scikit-image>=0.22
+zarr>=3.0            # OME-Zarr v3 test volumes require zarr-python >= 3
+# nbformat is only needed locally to (re)build the .ipynb from the .py, not on Kaggle.
