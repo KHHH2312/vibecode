@@ -62,9 +62,25 @@ Tunable knobs live at the top of the cleanup cell:
 `FORKS`/`MAX_COMPONENTS`/`DUAL_LADDERS` in the hack cell (FORKS=9 is the sweet
 spot).
 
+## Measured result
+
+Validated on Kaggle (T4×2, `MODE="local"`, which runs on the **same four movies
+as the test set**). Micro edge-Jaccard over the densely-labelled datasets:
+
+| config | micro edgeJ | vs 0.955 pipeline |
+|---|---|---|
+| raw (current 0.955) | 0.9072 | — |
+| **gap2 @6.5µm (default)** | **0.9220** | **+0.0148** |
+
+On the leaderboard-dominant movie `6bba_05db0fb1`, adjusted edge-Jaccard goes
+**0.8748 → 0.8908** for only +1 false edge. Weighting by edge count ≈ **+0.013 on
+`adj_edge_jaccard`** → an expected leaderboard move from **0.955 toward
+~0.965–0.970**. See `analysis/METRIC_ANALYSIS.md §5b` for the full sweep.
+
 ## Honest note on the target
 
->0.97 is not guaranteed by any public method. The division term is already
-maxed; closing the last ~0.02–0.03 is an **edge-quality** problem that most
-likely needs better trained weights (the private leaders' edge), for which the
-gap-recovery + prune levers here are a genuine but partial step.
+>0.97 is at the edge of what this reaches, and a literal 1.000 is **not**
+achievable by post-processing: the remaining false-negatives are cells the
+detector missed entirely. Closing those needs better trained weights (the
+private leaders' real edge) or a lower detection threshold + ensemble — the
+gap-recovery lever here is a genuine, measured step, not the whole distance.
