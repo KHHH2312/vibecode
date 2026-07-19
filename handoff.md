@@ -21,7 +21,7 @@
 | Banked public score | **0.970** (`bh-v99-ultimate` v1) — **propped up by the division exploit**; will be re-scored down Monday |
 | What happens Monday | Host re-scores all exploiting submissions under a **patched metric**. Our 0.970 loses its ~0.095 division contribution → settles to its honest edge value. |
 | **Ready-to-submit honest notebook** | **`bh-v100c-submit`** — clean (no exploit), guarded, **ran green on T4×2**, output validated **SAFE TO SUBMIT**. |
-| **Next notebook (in flight)** | **`bh-v102-refine`** — attacks `6bba_05db0fb1` edge quality: sub-voxel peak COM + full-res intensity refine + dense-movie FP control. Pushed T4×2. **No auto-submit.** |
+| **Next notebook (COMPLETE)** | **`bh-v102-refine` v1** — COMPLETE on T4×2; post-write **SAFE TO SUBMIT**. Sub-voxel + intensity refine + dense FP control. Counts leaner than v100c (esp. `44b6_0b24845f`). **No auto-submit.** |
 | Honest post-patch value (real 4-movie test set) | **≈ 0.8723** (edge-only; division term = 0). Scores **~0.900 on today's pre-patch LB**, settling to **~0.872** after Monday. |
 | The decision (pending) | User submits `bh-v100c-submit` and/or `bh-v102-refine` after validation. **No auto-submit — user clicks submit.** |
 | Divisions | We match **0/3** local divisions under the patched metric → `divJ = 0`. Unmeasurable locally, contributes ~0 to the honest score. |
@@ -355,3 +355,20 @@ kaggle kernels output khalid000000/bh-v102-refine -p out_v102   # after COMPLETE
 # kaggle competitions submit -c biohub-cell-tracking-during-development \
 #   -k khalid000000/bh-v102-refine -v <version> -m "v102 refine honest"
 ```
+
+### Run result (v1 COMPLETE, T4×2, ~11 min predict)
+
+Patches applied: TTA D4, peak-COM refine, float coords. Intensity refine hit every node
+(0 rejected). Dense FP control applied only on `6bba_05db0fb1`. Post-write:
+**SAFE TO SUBMIT** (exactly 4 stems, 248490 rows, clean ids, 0 dangling edges).
+
+| movie | v102 n/e | v100c n/e | Δn / Δe |
+|-------|---------:|----------:|--------:|
+| 44b6_0113de3b | 25378 / 24637 | 25576 / 24816 | −198 / −179 |
+| 44b6_0b24845f | 23275 / 21796 | 24671 / 23146 | **−1396 / −1350** |
+| 6bba_05b6850b | 6297 / 6082 | 6441 / 6219 | −144 / −137 |
+| **6bba_05db0fb1** | **71579 / 69446** | 72433 / 70438 | **−854 / −992** |
+
+Leaner graphs (short-track filter + denser association geometry). Could help node
+penalty on 6bba (was over-detecting) or hurt if real edges were dropped — only an
+LB submit tells. Local out: `vibecode/out_v102/submission.csv`.
