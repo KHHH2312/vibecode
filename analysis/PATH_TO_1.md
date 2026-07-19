@@ -95,4 +95,45 @@ support pack; T4×2; internet off. No exploit cell.
 
 ## 5. § results
 
-_(filled from the bh-v101 sweep run)_
+### bh-v101 sweep (COMPLETE, patched metric, raw ILP tracks, 8-way TTA)
+
+Per-movie best threshold and the resulting adj_edge_jaccard:
+
+| movie | best thr | adj | note |
+|-------|----------|-----|------|
+| 44b6_0113de3b | 0.968 | 1.0015 | already optimal |
+| 44b6_0b24845f | 0.968 | 0.9551 | already optimal |
+| 44b6_33b596bf | 0.968 | 0.9548 | already optimal |
+| 6bba_05b6850b | 0.910 | 0.9582 | +0.0008 vs 0.968 |
+| **6bba_05db0fb1** | **0.968** | **0.8748** | lowering thr **hurts** |
+
+- **HONEST CEILING (best per-movie thr): 0.9126**
+- **baseline (thr=0.968 everywhere): 0.9124**
+
+**Conclusion — the detection-threshold lever is dead (+0.0002).** On the
+dominant movie `6bba_05db0fb1`, lowering the threshold *reduces* adj
+(0.8748→0.8727) and does **not** recover the missing edges: FN stays ~83, TP
+does not rise, it only inflates node count. The missing edges are a
+**detection/association-quality** problem, not a threshold problem — a knob
+can't fix them. (This raw 0.9124 matches v100's raw exactly; v100's gap
+recovery is what lifts raw→0.9250. Gap recovery remains the only lever that has
+moved the needle.)
+
+### Pivot: verify the user's honest 0.900 notebook
+
+The v101 result closes the threshold door, so the strongest honest asset is the
+user's **`biohubnextdayweights` notebook** — exploit-free, proper submit-mode,
+and it **actually scored 0.900 on the LB** (50ep weights + 8-way D4 TTA + a rich
+legit repair stack: motion relink, gap-close, strict gap2, short-track rescue,
+local safe-divisions). That's above what our v100 pipeline projects and it
+directly attacks the `6bba` edge-quality bottleneck.
+
+`kernel/bh-v100b-verify.ipynb` measures its **true post-patch value**: runs the
+full 0.900 recipe (DET=0.9725, GAP2 on, RESCUE on) on the 5 GT train movies and
+scores the post-processed `submission.csv` with the bundled patched metric,
+reporting the edge (survives Monday) vs division (re-scored) split. Result lands
+in `§ verify` below.
+
+## 6. § verify — 0.900 notebook under the patched metric
+
+_(filled from the bh-v100b-verify run)_
