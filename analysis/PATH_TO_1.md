@@ -136,4 +136,53 @@ in `§ verify` below.
 
 ## 6. § verify — 0.900 notebook under the patched metric
 
-_(filled from the bh-v100b-verify run)_
+**Run:** `bh-v100b-verify` (full 0.900 recipe: DET=0.9725, GAP2 on, RESCUE on)
+scored with the bundled patched metric.
+
+### 6a. Correction: the test set is 4 movies, not 5
+
+`sample_submission.csv` defines exactly **4** required datasets —
+`44b6_0113de3b, 44b6_0b24845f, 6bba_05b6850b, 6bba_05db0fb1`. Our local GT set
+has a **5th** movie, `44b6_33b596bf`, which is **NOT in the competition test
+set** (0 matches in the competition files). Every local measurement (v101 sweep,
+verify) micro-averaged over 5 movies — slightly wrong. The real LB set is 4.
+
+**This is also the cause of the two blank/errored submissions (07-19 04:16 &
+06:26).** They came from the local notebooks (`bh-v100-clean`, `bh-v100b-verify`),
+which emit `submission.csv` for **5** movies. The extra `44b6_33b596bf` is an
+unexpected dataset stem → the host scorer throws → blank score. Proof: the
+nextday pipeline (identical CSV-writing code) scored **0.903** when it ran on the
+real 4-movie test dir (submission 54748675). `node_id=0` is a red herring — the
+0.903 submission had it too.
+
+### 6b. Honest post-patch value on the real 4-movie test set
+
+| movie | adj | edgeJ | eTP/FP/FN | Npred/Ntot | divTP/FP/FN |
+|-------|-----|-------|-----------|------------|-------------|
+| 44b6_0113de3b | 0.9045 | 0.9038 | 47/2/3 | 25576/25755 | 0/0/0 |
+| 44b6_0b24845f | 1.0248 | 1.0000 | 49/0/0 | 24671/32795 | 0/0/0 |
+| 6bba_05b6850b | 0.9697 | 0.9709 | 834/14/11 | 6441/6362 | 0/1/0 |
+| **6bba_05db0fb1** | **0.8032** | 0.8063 | **1082/159/101** | 72433/69800 | 0/2/3 |
+
+- micro edge: eTP=2012 eFP=175 eFN=115 → **edgeJ=0.8740**
+- weighted **adj_edge_jaccard = 0.8723**
+- division: dTP=0 dFP=3 dFN=3 → **divJ=0.0000** (we match 0 divisions locally)
+- **>>> honest post-patch SCORE ≈ 0.8723** (edge-only; div contributes nothing)
+
+(5-movie verify printed 0.8749; the 4-movie number 0.8723 is the LB-accurate one.)
+
+**Read:** the 0.900 notebook's true post-Monday value is **~0.872**, not 0.900 —
+the LB 0.900 rode division-exploit credit that Monday strips. It is still the
+strongest *honest* asset we have (matches v100's raw and its rich repair stack
+attacks the `6bba_05db0fb1` bottleneck), and it is a **proper submit notebook**
+that banked 0.903 on the real test set. The dominant movie `6bba_05db0fb1`
+(adj 0.803, FP=159/FN=101) remains the entire game.
+
+### 6c. Submission hygiene (locked)
+
+- **Submit the real nextday/0.900 notebook in SUBMIT mode** — it must run on the
+  competition test dir (4 movies), NOT on `localval`. Never submit `bh-v100-clean`
+  or `bh-v100b-verify`; those are measurement tools and emit 5 movies → guaranteed
+  scorer error.
+- Any submission must contain **exactly the 4 test stems**. A pre-submit assert
+  on `set(dataset)==={4 stems}` would have caught both blank submits.
