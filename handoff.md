@@ -21,16 +21,17 @@
 | Banked public score | **0.970** (`bh-v99-ultimate` v1) — **propped up by the division exploit**; will be re-scored down Monday |
 | What happens Monday | Host re-scores all exploiting submissions under a **patched metric**. Our 0.970 loses its ~0.095 division contribution → settles to its honest edge value. |
 | **Ready-to-submit honest notebook** | **`bh-v100c-submit`** — clean (no exploit), guarded, **ran green on T4×2**, output validated **SAFE TO SUBMIT**. |
+| **Next notebook (in flight)** | **`bh-v102-refine`** — attacks `6bba_05db0fb1` edge quality: sub-voxel peak COM + full-res intensity refine + dense-movie FP control. Pushed T4×2. **No auto-submit.** |
 | Honest post-patch value (real 4-movie test set) | **≈ 0.8723** (edge-only; division term = 0). Scores **~0.900 on today's pre-patch LB**, settling to **~0.872** after Monday. |
-| The decision (pending) | User submits `bh-v100c-submit`'s `submission.csv` **now** to bank the honest entry, **or** waits for Monday's re-scored board first. **No auto-submit — user clicks submit.** |
+| The decision (pending) | User submits `bh-v100c-submit` and/or `bh-v102-refine` after validation. **No auto-submit — user clicks submit.** |
 | Divisions | We match **0/3** local divisions under the patched metric → `divJ = 0`. Unmeasurable locally, contributes ~0 to the honest score. |
 | Biggest legit lever | Edge quality on **`6bba_05db0fb1`** (adj **0.803**, FP=159/FN=101) — the dominant movie by edge weight and the entire game post-patch. |
 | Dead lever (measured) | **Detection threshold.** The v101 per-movie sweep moved the honest ceiling by **+0.0002**. Lowering threshold on `6bba_05db0fb1` *hurts*. The missing edges are a detection/association-**quality** problem, not a knob. |
 | Standing rules | **No auto-submissions.** **T4×2 only** (never P100). **~5 submissions/day.** Develop/push on `claude/kaggle-notebook-optimization-ehdava`. |
 
-**Immediate action:** `bh-v100c-submit` is done and validated. The next move is
-the user's submission decision. After Monday's re-score, read the honest board
-and attack `6bba_05db0fb1`'s edge quality (a modeling problem, not tuning).
+**Immediate action:** `bh-v102-refine` is the next modeling step (edge quality). Wait for
+COMPLETE + post-write `SAFE TO SUBMIT`, then user decides whether to submit.
+`bh-v100c-submit` remains the safe honest bank (~0.872 post-patch).
 
 ---
 
@@ -312,17 +313,45 @@ analysis/
 
 ## 9. Immediate next actions
 
-1. **User's submission decision (pending).** `bh-v100c-submit`'s validated
-   `submission.csv` is ready. Submitting now banks ~0.900 on today's pre-patch LB,
-   settling to **~0.872** after Monday. Alternatively wait for Monday's re-scored
-   board first. **Do not auto-submit — the user clicks submit.**
-2. **After Monday's re-score:** read the honest board to see the real #1 target
-   and where ~0.872 lands. The current 0.967–0.979 leaders almost certainly used
-   the same division trick and will fall toward their honest edge scores too — the
-   honest #1 is a much lower, more reachable number than today's board shows.
-3. **Attack `6bba_05db0fb1` edge quality** — the only meaningful honest headroom.
-   This is a modeling problem (sub-voxel peak refinement, better-trained edge
-   weights, ensembling), not a knob. The threshold lever is already proven dead.
-4. **Optional LB probe (post-Monday, one submit):** bump `ILP_DIVISION_WEIGHT` to
-   test whether real divisions score on the hidden test set — no local signal, so
-   spend a daily submit deliberately.
+1. **`bh-v102-refine` is running** (`khalid000000/bh-v102-refine` on T4×2).
+   When COMPLETE: download `submission.csv`, confirm post-write guard
+   `SAFE TO SUBMIT`, compare node/edge counts vs v100c. **User clicks submit**
+   if it looks good — no auto-submit.
+2. **`bh-v100c-submit` remains the safe bank.** Validated 4-movie CSV; honest
+   ~0.872 post-patch / ~0.900 pre-patch.
+3. **After Monday's re-score:** read the honest board for the real #1 target.
+4. **If v102 does not lift:** next axes are better edge weights / 350ep pin
+   ensemble / ILP weight probe — not more threshold spam.
+5. **Optional LB probe (post-Monday, one submit):** bump `ILP_DIVISION_WEIGHT`.
+
+---
+
+## 10. bh-v102-refine (built 2026-07-19, Grok continuation)
+
+**Slug:** `khalid000000/bh-v102-refine`
+**Branch paths:** `kernel_v102/`, `kernel/bh-v102-refine.ipynb`, `notebooks/bh-v102-refine.ipynb`
+**Builder:** `_build_v102.py` (from `bh-v100c-submit`)
+**Metadata:** T4×2 (`machine_shape: NvidiaTeslaT4`), internet off, support pack only
+
+### What it changes vs v100c
+
+| Change | Why |
+|--------|-----|
+| Sub-voxel peak COM on det logits | Peaks on 4× XY grid (~1.6 µm); COM recovers sub-voxel centroids → better 7 µm match + edge distances |
+| Keep float coords through predict | Stop `int16` snap after upsample |
+| Full-res intensity COM refine (all nodes) | Same idea as gap synthetic refine; max shift 2.5 µm |
+| Dense FP control on `6bba_05db0fb1` only | Edge max 11.5 µm; tighter GAP2 (8.8/3.7, abs 110); motion relaxed 8.5 µm |
+
+Same DET=0.9725 + GAP2 + RESCUE + div-geom + D4 TTA. Same preflight + post-write
+guards. **No exploit. No fusion.**
+
+### Ops
+
+```bash
+export KAGGLE_CONFIG_DIR=~/.kaggle
+kaggle kernels status khalid000000/bh-v102-refine
+kaggle kernels output khalid000000/bh-v102-refine -p out_v102   # after COMPLETE
+# User submits via UI or:
+# kaggle competitions submit -c biohub-cell-tracking-during-development \
+#   -k khalid000000/bh-v102-refine -v <version> -m "v102 refine honest"
+```
