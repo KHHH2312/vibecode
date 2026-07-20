@@ -23,71 +23,69 @@ def lines(s: str) -> list[str]:
 
 WEIGHT_OVERRIDE_SNIPPET = r'''
 # ==================== v110: prefer attached 350ep public weights ====================
-# Bank PP is locked; only the edge-predictor checkpoint is upgraded when present.
-# Search attached datasets for edge_predictor_best.pth; prefer paths mentioning 350.
+# Support-pack weights are often hardlinked/read-only under REPO_DIR/weights.
+# Install stronger public weights to a WRITABLE path and retarget WEIGHTS_RELATIVE.
 def _install_stronger_public_weights() -> None:
+    global WEIGHTS_RELATIVE
     prefer_350 = os.environ.get("BIOHUB_PREFER_350EP", "1") != "0"
     override = os.environ.get("BIOHUB_WEIGHTS_OVERRIDE", "").strip()
-    target = REPO_DIR / WEIGHTS_RELATIVE
-    target.parent.mkdir(parents=True, exist_ok=True)
 
-    if override:
-        src = Path(override)
-        if not src.exists():
-            raise FileNotFoundError(f"BIOHUB_WEIGHTS_OVERRIDE not found: {src}")
-        shutil.copy2(src, target)
-        print(f"v110 weights override installed: {src} -> {target}")
-        return
+    # Always write under a fresh writable tree (not the linked pack path).
+    alt_rel = "weights_override/unet_transformer/split_0/edge_predictor_best.pth"
+    alt_abs = REPO_DIR / alt_rel
+    alt_abs.parent.mkdir(parents=True, exist_ok=True)
 
-    roots = [
-        Path("/kaggle/input"),
-        Path("/kaggle/input/datasets"),
-    ]
-    cands: list[Path] = []
-    for root in roots:
-        if not root.exists():
-            continue
-        try:
-            cands.extend(root.rglob("edge_predictor_best.pth"))
-        except Exception as exc:
-            print(f"v110 weight scan skip {root}: {exc}")
+    def _pick_source() -> Path | None:
+        if override:
+            src = Path(override)
+            if not src.exists():
+                raise FileNotFoundError(f"BIOHUB_WEIGHTS_OVERRIDE not found: {src}")
+            return src
+        roots = [Path("/kaggle/input"), Path("/kaggle/input/datasets")]
+        cands: list[Path] = []
+        for root in roots:
+            if not root.exists():
+                continue
+            try:
+                cands.extend(root.rglob("edge_predictor_best.pth"))
+            except Exception as exc:
+                print(f"v110 weight scan skip {root}: {exc}")
+        if not cands:
+            return None
 
-    if not cands:
+        def rank(p: Path) -> tuple:
+            s = str(p).lower().replace("\\", "/")
+            if "deepcenter" in s or "full_frame" in s or "weights_override" in s:
+                return (9, len(s), s)
+            if prefer_350 and ("350ep" in s or "350" in s):
+                return (0, len(s), s)
+            if "300ep" in s or "300" in s:
+                return (1, len(s), s)
+            if "retrain" in s or "v34" in s:
+                return (2, len(s), s)
+            if "unet_transformer" in s:
+                return (3, len(s), s)
+            if "biohub-tracking-support-pack" in s:
+                return (8, len(s), s)
+            return (5, len(s), s)
+
+        cands = sorted(set(cands), key=rank)
+        print("v110 candidates (top 8):")
+        for p in cands[:8]:
+            print(f"  rank={rank(p)} {p}")
+        return cands[0]
+
+    src = _pick_source()
+    if src is None:
         print("v110: no alternate edge_predictor_best.pth found; keeping support-pack weights")
         return
 
-    def rank(p: Path) -> tuple:
-        s = str(p).lower().replace("\\", "/")
-        # de-prioritize deepcenter / non-unet paths
-        if "deepcenter" in s or "full_frame" in s:
-            return (9, len(s), s)
-        if prefer_350 and ("350ep" in s or "350" in s):
-            return (0, len(s), s)
-        if "300ep" in s or "300" in s:
-            return (1, len(s), s)
-        if "retrain" in s or "v34" in s:
-            return (2, len(s), s)
-        if "unet_transformer" in s:
-            return (3, len(s), s)
-        # support pack already materialized — avoid re-copying same file first
-        if "biohub-tracking-support-pack" in s:
-            return (8, len(s), s)
-        return (5, len(s), s)
-
-    cands = sorted(set(cands), key=rank)
-    best = cands[0]
-    # skip if best is already the materialized pack path equal size and same file
-    try:
-        if target.exists() and best.resolve() == target.resolve():
-            print(f"v110: already using {best}")
-            return
-    except Exception:
-        pass
-    shutil.copy2(best, target)
-    print(f"v110 installed stronger weights: {best} -> {target} (rank={rank(best)})")
-    print("v110 candidates (top 8):")
-    for p in cands[:8]:
-        print(f"  rank={rank(p)} {p}")
+    # Copy bytes into writable working path (never overwrite linked pack path).
+    data = Path(src).read_bytes()
+    alt_abs.write_bytes(data)
+    WEIGHTS_RELATIVE = alt_rel.replace("\\", "/")
+    print(f"v110 installed stronger weights: {src} -> {alt_abs}")
+    print(f"v110 WEIGHTS_RELATIVE retargeted to {WEIGHTS_RELATIVE} ({len(data)} bytes)")
 
 
 _install_stronger_public_weights()

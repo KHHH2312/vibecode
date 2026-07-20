@@ -1,0 +1,23 @@
+{
+  "id": "khalid000000/bh-v111-gapfn",
+  "title": "bh-v111-gapfn",
+  "code_file": "bh-v111-gapfn.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "dataset_sources": [
+    "pilkwang/biohub-tracking-support-pack-50ep-v1",
+    "hongdaekim/biohub-350ep-checkpoint-pin-v1",
+    "shehailrs/biohub-tracking-350ep-public-weight-snapshot",
+    "subinium/biohub-v34-retrain-weights-mirror"
+  ],
+  "competition_sources": [
+    "biohub-cell-tracking-during-development"
+  ],
+  "kernel_sources": [],
+  "model_sources": [],
+  "machine_shape": "NvidiaTeslaT4"
+}
