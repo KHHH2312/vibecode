@@ -1,2 +1,10 @@
+# Local kernel output trees (downloaded from Kaggle; large, not source)
+out_v*/
+out_*/
+
+# Background poller logs / local state
+wait_v112.py
+wait_score.py
+.auto_campaign_state.json
 __pycache__/
 *.pyc
