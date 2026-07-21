@@ -1,0 +1,21 @@
+{
+  "id": "khalid000000/bh-v112-v34",
+  "title": "bh-v112-v34",
+  "code_file": "bh-v112-v34.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "dataset_sources": [
+    "pilkwang/biohub-tracking-support-pack-50ep-v1",
+    "subinium/biohub-v34-retrain-weights-mirror"
+  ],
+  "competition_sources": [
+    "biohub-cell-tracking-during-development"
+  ],
+  "kernel_sources": [],
+  "model_sources": [],
+  "machine_shape": "NvidiaTeslaT4"
+}
