@@ -1,374 +1,555 @@
-# Biohub Cell Tracking — Handoff (post-exploit-patch pivot)
+# Biohub Cell Tracking — FULL HANDOFF (stop-gap until next week)
 
-**Written:** 2026-07-19 (updated after the 4-movie correction + clean submit build)
-**Competition:** [Biohub — Cell Tracking During Development](https://www.kaggle.com/competitions/biohub-cell-tracking-during-development)
-**Slug:** `biohub-cell-tracking-during-development`
-**Account:** `khalid000000`
-**Branch:** `claude/kaggle-notebook-optimization-ehdava`
+**Written:** 2026-07-21 (UTC; supersedes all prior handoffs)  
+**Competition:** [Biohub — Cell Tracking During Development](https://www.kaggle.com/competitions/biohub-cell-tracking-during-development)  
+**Slug:** `biohub-cell-tracking-during-development`  
+**Account:** `khalid000000`  
+**GitHub:** `KHHH2312/vibecode`  
+**Branch:** `claude/kaggle-notebook-optimization-ehdava`  
+**Workspace:** `C:\Users\Khalid\Desktop\New_folder\vibecode`  
+**Also copy:** `C:\Users\Khalid\Desktop\handoff.md`
 
-> This handoff supersedes the "hub/ladder gets us to 0.97" story in
-> `README.md` and `analysis/grok-handoff.md` (the pre-patch world). **The
-> division-metric exploit has been found by the host, patched, and will
-> re-score everything (expected Monday).** The whole strategy has pivoted to a
-> **legitimate, exploit-free score** that survives the re-score. Start here.
-
----
-
-## 0. Thirty-second briefing
-
-| Item | Current truth |
-|------|---------------|
-| Banked public score | **0.970** (`bh-v99-ultimate` v1) — **propped up by the division exploit**; will be re-scored down Monday |
-| What happens Monday | Host re-scores all exploiting submissions under a **patched metric**. Our 0.970 loses its ~0.095 division contribution → settles to its honest edge value. |
-| **Ready-to-submit honest notebook** | **`bh-v100c-submit`** — clean (no exploit), guarded, **ran green on T4×2**, output validated **SAFE TO SUBMIT**. |
-| **Next notebook (COMPLETE)** | **`bh-v102-refine` v1** — COMPLETE on T4×2; post-write **SAFE TO SUBMIT**. Sub-voxel + intensity refine + dense FP control. Counts leaner than v100c (esp. `44b6_0b24845f`). **No auto-submit.** |
-| Honest post-patch value (real 4-movie test set) | **≈ 0.8723** (edge-only; division term = 0). Scores **~0.900 on today's pre-patch LB**, settling to **~0.872** after Monday. |
-| The decision (pending) | User submits `bh-v100c-submit` and/or `bh-v102-refine` after validation. **No auto-submit — user clicks submit.** |
-| Divisions | We match **0/3** local divisions under the patched metric → `divJ = 0`. Unmeasurable locally, contributes ~0 to the honest score. |
-| Biggest legit lever | Edge quality on **`6bba_05db0fb1`** (adj **0.803**, FP=159/FN=101) — the dominant movie by edge weight and the entire game post-patch. |
-| Dead lever (measured) | **Detection threshold.** The v101 per-movie sweep moved the honest ceiling by **+0.0002**. Lowering threshold on `6bba_05db0fb1` *hurts*. The missing edges are a detection/association-**quality** problem, not a knob. |
-| Standing rules | **No auto-submissions.** **T4×2 only** (never P100). **~5 submissions/day.** Develop/push on `claude/kaggle-notebook-optimization-ehdava`. |
-
-**Immediate action:** `bh-v102-refine` is the next modeling step (edge quality). Wait for
-COMPLETE + post-write `SAFE TO SUBMIT`, then user decides whether to submit.
-`bh-v100c-submit` remains the safe honest bank (~0.872 post-patch).
+> **Read this first.** Everything from the post-patch pivot through the 2026-07-20
+> campaign (0.895 regressions, bank restore, 350ep push, public exploit audit) is
+> here. Do **not** re-open the hub/ladder exploit path.
 
 ---
 
-## 1. What happened — the exploit and the patch
+## 0. Thirty-second briefing (as of last poll)
 
-### 1.1 The score formula (unchanged by the patch)
+| Item | Truth |
+|------|--------|
+| **Best honest COMPLETE LB score** | **0.902** (ref `54830671`, 2026-07-19) |
+| **Bad honest scores this week** | **0.895** on both `bh-v102-refine` and `bh-v103-assoc` |
+| **Exploit-era bank (do not chase)** | 0.970 / 0.955 / 0.952 — hub/ladder; will die or already dying on re-score |
+| **Target you asked for** | Honest **0.920+** (ambitious vs public weights; see §ceiling) |
+| **In-flight PENDING (must poll)** | `54862719` bank restore · `54863143` v110-350ep · `54863473` v111-gapfn |
+| **Standing rules** | No exploit · T4×2 only · ~5 submits/day UTC · exact **4** test movies · code-comp submit path |
+| **Primary honest lever** | Edge quality on **`6bba_05db0fb1`** + stronger **public weights** (350ep) |
+| **Dead lever** | Detection threshold (v101: +0.0002 only; lowering thr on 6bba **hurts**) |
+| **Proven hurt** | v102 intensity refine + dense FP · v103 quality prune stack → **0.895** |
+
+### What to do first next session
+
+1. `python -m kaggle competitions submissions -c biohub-cell-tracking-during-development`  
+   → capture real scores for `54862719`, `54863143`, `54863473`.
+2. Set `best = max(0.902, any new COMPLETE honest score)`.
+3. If v110/v111 ≥ best and climbing toward 0.920 → iterate weights/edge on **that** stack.  
+   If they **regress** vs 0.902 → stay on **v100c bank** recipe only; do **not** re-stack v102/v103 knobs.
+4. Never re-submit hub/ladder or 5-movie measurement notebooks.
+
+---
+
+## 1. Competition facts
+
+### 1.1 Score formula
 
 ```
 score = adj_edge_jaccard + 0.1 · division_jaccard
 
-edge_jaccard      = eTP / (eTP + eFP + eFN)                 # matching @ 7µm anisotropic
-adj_edge_jaccard  = edge_jaccard · (1 − 0.1·(Npred − Ntotal)/Ntotal),  clipped ≥ 0
-division_jaccard  = dTP / (dTP + dFP + dFN)
+edge_jaccard     = eTP / (eTP + eFP + eFN)           # match @ 7 µm anisotropic
+adj_edge_jaccard = edge_jaccard · (1 − 0.1·(Npred − Ntotal)/Ntotal)  # clipped ≥ 0
+division_jaccard = dTP / (dTP + dFP + dFN)
 ```
 
-`ADJUSTMENT_ALPHA = 0.1`, `SCORE_DIVISION_WEIGHT = 0.1`,
-`VOXEL_SCALE_UM = (1.625, 0.40625, 0.40625)`, match `max_distance = 7.0`.
-Over-detecting nodes (`Npred > Ntotal`) shrinks the edge term via the
-adjustment factor.
+- `VOXEL_SCALE_UM = (1.625, 0.40625, 0.40625)`, `max_distance = 7.0`
+- Host `summarise()`: edge/div **micro-averaged**; **adj** is **edge-count weighted** per sample  
+  → **`6bba_05db0fb1` dominates** the score
+- If no divisions anywhere, division term may drop and `score ≈ adj_edge_jaccard`
 
-**Host `summarise()` aggregation (matters for predicting the LB):**
-- `edge_jaccard` / `division_jaccard` are **micro-averaged** — TP/FP/FN summed
-  across all samples, then Jaccard computed from the totals.
-- `adj_edge_jaccard` is a **weighted average** of per-sample adj, weight
-  `w_i = eTP_i + eFP_i + eFN_i` → the movie with the most edges dominates.
-- Rows with NaN `edge_tp` are **skipped**. If there are no divisions anywhere,
-  the division term is dropped and `score = adj_edge_jaccard`.
+### 1.2 Test set is **4 movies**, not 5
 
-### 1.2 The exploit (what the 0.970 did)
+Required stems (from `sample_submission.csv` / competition test dir):
 
-`bh-v99-ultimate` cell 7 (`augment_dataset`, `hub_id`, `FORKS=9`,
-`DUAL_LADDERS=2`, `MAX_COMPONENTS=1800`) added a synthetic **hub** node wired to
-every track root, collapsing each movie's prediction into **one weakly-connected
-component**, plus far-away synthetic **ladder dividers** to supply predicted
-dividing nodes. The *old* metric credited a GT division whenever the surrounding
-cells were merely in the same weakly-connected component → the hub guaranteed
-that → `division_jaccard` saturated near ~0.95 → **+0.095** on the score. That is
-the entire gap between the honest edge score and the banked 0.970.
+```
+44b6_0113de3b
+44b6_0b24845f
+6bba_05b6850b
+6bba_05db0fb1
+```
 
-### 1.3 The patch (`royerlab/kaggle-cell-tracking-competition`, commit `075fc5f`)
+**NOT in test:** `44b6_33b596bf` (exists in some local GT / measurement runs).
 
-Read in full; reference copies in `analysis/patched_metric_reference/`. The
-patch replaces "same weakly-connected component" with a **local directed
-topology** test:
+**Blank/error scores** (2026-07-19 `54821789`, `54823772`): measurement notebooks emitted **5 movies** → scorer fails → blank publicScore.  
+**`node_id = 0` is fine** (present in 0.903-scoring runs).
 
-- **`_is_strongly_connected_division`** now requires a matched
-  **parent → predicted fork → two distinct daughter lineages**, locally, through
-  the dividing node itself → **the hub creates no division TPs.**
-- **Candidate forks** are restricted to matched parent-side nodes and their
-  successors → the far-away synthetic ladder dividers (never matched to GT)
-  **can't be candidates.**
-- **`_pred_division_fork_sets`** marks predicted forks whose child branches land
-  in **distinct GT weakly-connected components** as **cross-component false
-  positives** → the hub becomes a **division FP**, actively *lowering* the score.
-- **`metrics.py`** adds an out-degree-2 cap and merge/duplicate-edge guards.
+### 1.3 Transductive gift
 
-**Net:** post-patch the exploit doesn't just stop helping — it adds division FPs
-and node-count penalty. Removing it is mandatory.
+Train zarrs for these four movies match competition test content for practical purposes: per-movie counts transfer 1:1. Local tuning on those four is legitimate.
+
+### 1.4 Code-competition submit path (critical)
+
+Plain `kaggle competitions submit -f submission.csv` often **400** with:
+
+> This competition requires an output FileName for Notebook Submissions.
+
+**Working path:**
+
+```bash
+python -m kaggle competitions submit biohub-cell-tracking-during-development \
+  -k khalid000000/<kernel-slug> -v <version> -f submission.csv \
+  -m "description"
+```
+
+Daily cap: **~5 / day UTC**. On 2026-07-20 we hit 5/5; next day reset ~midnight UTC.
+
+GPU: **`NvidiaTeslaT4`** only (T4×2). Never P100 for campaign kernels. Batch GPU limit ~2.
 
 ---
 
-## 2. The critical correction: the test set is **4 movies**, not 5
+## 2. The exploit (FORBIDDEN) and the host patch
 
-`sample_submission.csv` defines exactly **4** required datasets:
+### 2.1 What the exploit is
 
-```
-44b6_0113de3b, 44b6_0b24845f, 6bba_05b6850b, 6bba_05db0fb1
-```
+Public and our old notebooks (`bh-v99-ultimate`, and many public “0.95” kernels) add:
 
-Our local GT set has a **5th** movie, `44b6_33b596bf`, which is **NOT in the
-competition test set** (0 matches in the competition files). Every earlier local
-measurement (v100-clean, v101 sweep, v100b-verify) micro-averaged over **5**
-movies and was therefore slightly wrong. The LB-accurate number is the 4-movie
-aggregate.
+1. Synthetic **hub** node at far coords (`t≈-1000`, `z/y/x≈-10000`)
+2. Edges hub → top track roots (`MAX_COMPONENTS` ~1200–1800)
+3. **FORKS** synthetic ladder **dividers** also at `-10000` for division TPs  
+4. Function usually named **`augment_dataset`**
 
-### 2.1 This is the cause of the two blank/errored submissions
+Old metric: GT division counted if cells shared a **weakly-connected component** + any predicted fork → hub collapses graph → `division_jaccard` ~0.95 → **+~0.095** score.
 
-Submissions **54821789 (04:16)** and **54823772 (06:26)** on 2026-07-19 came back
-**COMPLETE but with no score** (Kaggle shows this as an "error"). Root cause:
-they were produced by the **measurement** notebooks (`bh-v100-clean`,
-`bh-v100b-verify`), which emit `submission.csv` for **5** movies. The extra
-`44b6_33b596bf` is an unexpected dataset stem → the host scorer raises →
-`scripts/evaluate.py` turns the exception into a NaN row → `summarise()` drops it
-→ **blank/missing public score.**
+### 2.2 The patch
 
-**Proof it's the movie count, not a format bug:** the nextday pipeline (identical
-CSV-writing code) scored **0.903** when it ran on the real 4-movie test dir
-(submission 54748675).
+Host repo `royerlab/kaggle-cell-tracking-competition` (commit around `075fc5f`).  
+Local copies: `analysis/patched_metric_reference/`.
 
-**`node_id = 0` is a red herring.** The pipeline writes
-`node_id = int(row["node_id"])` (0-based graph index, no remap), so `node_id=0`
-occurs naturally. The 0.903 submission had it and scored fine — it does **not**
-crash the scorer.
+- Division requires **local directed topology** (parent → fork → two daughter lineages through the dividing node)
+- Far synthetic ladders never match GT → not valid candidates  
+- Hub wiring can create **cross-component division FPs** → **hurts** post-patch  
+- **Do not re-enable hub/ladder under any “push to 0.97” temptation**
 
-### 2.2 Transductive gift is literal
+### 2.3 Public notebooks audit (2026-07-21)
 
-The submit run's per-movie node/edge counts are **identical** to the verify run
-on the train zarrs → the train and test zarr data for these movies are the same,
-so predictions transfer **1:1**. Per-movie tuning on local GT is legitimate and
-carries straight to the LB.
+| Notebook | Exploit? |
+|----------|----------|
+| `outwrest/metric-hack-minimal-baseline-tta-2gpu` | **YES** — canonical |
+| `kirneo/metric-hack-last-call` | **YES** |
+| `harshitsama/biohub-0-950-baseline-explained-reproducible` | **YES** — openly “metric-augmentation” for ~0.950 |
+| `kaiwalyaatulraut/biohub-cell-tracking-solution` | **YES** |
+| `boristown/dark-agi-biohub-cell-tracking-solution` | **YES** (forks/max_components variants) |
+| `yusuketogashi/biohub-clean-approach-no-metric-hacking` | **NO** — anti-hub audit |
+| `yusuketogashi/lb897-baseline` / Pilkwang baselines | **NO** |
+
+**Public ~0.95 cluster = exploit, not honest SOTA.** Private 0.97–0.98 may be exploit + better edges/private weights (not open).
 
 ---
 
-## 3. Honest post-patch value (real 4-movie test set)
+## 3. Honest score reality
 
-Full 0.900 recipe (DET=0.9725, GAP2 on, RESCUE on) scored under the bundled
-**patched** metric:
+### 3.1 Bank recipe (0.900 stack) under patched metric (4-movie)
 
-| movie | adj | edgeJ | eTP/FP/FN | Npred/Ntot | divTP/FP/FN |
-|-------|-----|-------|-----------|------------|-------------|
-| 44b6_0113de3b | 0.9045 | 0.9038 | 47/2/3 | 25576/25755 | 0/0/0 |
-| 44b6_0b24845f | 1.0248 | 1.0000 | 49/0/0 | 24671/32795 | 0/0/0 |
-| 6bba_05b6850b | 0.9697 | 0.9709 | 834/14/11 | 6441/6362 | 0/1/0 |
-| **6bba_05db0fb1** | **0.8032** | 0.8063 | **1082/159/101** | 72433/69800 | 0/2/3 |
+From `bh-v100b-verify` / handoff measurements:
 
-- micro edge: eTP=2012 eFP=175 eFN=115 → **edgeJ = 0.8740**
-- weighted **adj_edge_jaccard = 0.8723**
-- division: dTP=0 dFP=3 dFN=3 → **divJ = 0.0000**
-- **>>> honest post-patch SCORE ≈ 0.8723** (edge-only; division contributes nothing)
+| movie | adj (approx) | note |
+|-------|--------------|------|
+| 44b6_0113de3b | ~0.90 | light edges |
+| 44b6_0b24845f | high adj / tiny weight | often over-noded; low edge weight |
+| 6bba_05b6850b | ~0.97 | medium |
+| **6bba_05db0fb1** | **~0.80** | **dominates**; e.g. eTP/FP/FN ~1082/159/101 |
 
-(The 5-movie verify run printed **0.8749**; the 4-movie **0.8723** is the
-LB-accurate figure — use that one.)
+- Weighted honest post-patch **≈ 0.872** (edge-only; local divJ ≈ 0)  
+- Pre-patch LB for same notebook **≈ 0.900–0.903** (old division credit still partially in play on some days)
 
-**Read:** the 0.900 notebook's true post-Monday value is **~0.872**, not 0.900.
-The LB 0.900 rode division-exploit credit that Monday strips. It is still the
-strongest *honest* asset we have (a proper submit notebook that banked 0.903 on
-the real test set, with a rich legit repair stack — motion relink, gap-close,
-strict gap2, short-track rescue, local safe-divisions). The dominant movie
-`6bba_05db0fb1` (adj 0.803, FP=159/FN=101) is **the entire game**.
+### 3.2 Ceilings (honest)
 
----
+| Asset | Approx honest ceiling |
+|-------|------------------------|
+| Public 50ep pack + bank PP | **~0.90–0.91** pre-patch LB; **~0.87** pure edge post-patch |
+| Public 350ep pin + bank PP | **Unknown LB** (submitted v110/v111 PENDING at handoff) — main hope toward 0.92 |
+| Private better weights (Kevin etc.) | Can be higher; not in our packs |
+| User goal **0.920+** | Stretch; needs weights/edge win; **not** guaranteed with public assets |
 
-## 4. The levers (measured)
+### 3.3 Dead / hurt levers (measured)
 
-| lever | verdict |
+| Lever | Verdict |
 |-------|---------|
-| **Detection threshold (per movie)** | **DEAD.** v101 sweep moved the honest ceiling +0.0002. On `6bba_05db0fb1`, lowering threshold *reduces* adj (0.8748→0.8727), does not recover the missing edges (FN stays ~83–101, TP flat), only inflates node count → trips the `(1 − 0.1·(Npred−Ntot)/Ntot)` penalty. |
-| **`6bba_05db0fb1` edge quality** | **The real lever, but it's a modeling problem.** FN=101 are real edges the association misses; FP=159 are spurious links. Fixing them needs better detection/association quality (sub-voxel peak refinement, better-trained edge weights, ensembling), not a knob. This is where the only meaningful honest headroom lives. |
-| **Gap recovery** | Net +0.0126 raw→full on the 5-movie measure; the full 0.900 recipe already has it on. Over-adds on `44b6_0b24845f` (Npred +14% over Ntot) but that movie's tiny edge weight makes it nearly free. Already baked into the recipe. |
-| **`ILP_DIVISION_WEIGHT` probe** | **LB-only, post-Monday.** We match 0/3 divisions locally with no signal to tune on. The hidden test set may have many more divisions; better recall (which we can't cheaply improve) is what would create real forks. Worth **one** deliberate LB submit after Monday's board is visible — not a safe knob. |
+| Per-movie DET threshold | **DEAD** (+0.0002 in v101); lower thr on 6bba **hurts** adj |
+| Full-frame fusion / DeepCenter ADD | **HURT** (~0.891 historically) |
+| DeepCenter veto | OFF in bank; leave OFF unless re-proven |
+| v102 intensity COM refine + dense FP on 6bba | **HURT → 0.895** |
+| v103 quality edge prune + boosted motion/GAP2 on top of refine | **HURT → 0.895** |
+| Hub/ladder | **FORBIDDEN** (patched) |
 
-**Honest read on higher scores:** with divisions ≈0 and edge ≈0.874 on the test
-set, a legitimate jump needs `adj_edge_jaccard` to climb — i.e. genuinely better
-edge tracking on `6bba_05db0fb1`. That's a modeling improvement (better weights,
-detection, association), not tuning. We commit to the maximum honest score these
-movies allow and to adapting the moment Monday reveals the real target. We do
-**not** promise #1 from public assets — private leaders may simply have
-better-trained weights, the one thing we can't out-tune.
+### 3.4 Live honest levers
+
+1. **Better edge-predictor weights** (350ep pin, retrain mirrors, own training)  
+2. **True association quality** on 6bba (ILP / motion / GAP2 **without** the 0.895 package)  
+3. Sub-voxel peak COM **alone** was unproven LB-wise (v105 COMPLETE, not submitted after better-gate)  
+4. Mild real safe-division geometry (already in bank; tiny div signal locally)
 
 ---
 
-## 5. The ready-to-submit notebook — `bh-v100c-submit`
+## 4. Full submission ledger (relevant)
 
-Built from the user's proven 0.900 nextday notebook, in **SUBMIT mode**, with
-two guards that make the blank-score error impossible. **Ran to COMPLETE on
-T4×2; output validated SAFE TO SUBMIT.**
+### 4.1 Honest / campaign (focus)
 
-**What it locks / changes vs the base:**
-- Verified full recipe: `BIOHUB_DET_THRESHOLD=0.9725`, `GAP2_RECOVERY=1`,
-  `ADAPTIVE_SHORT_TRACK_RESCUE=1`.
-- **No** `BIOHUB_TEST_DIR` override → runs on the real competition test dir
-  (`COMP_DIR/test`, 4 movies). Never `localval`.
-- **Pre-flight guard** (after cell 3): refuses to run if `TEST_DIR` points at a
-  `localval` / `/kaggle/working` measurement dir; lists the movies; confirms they
-  are exactly the 4 known test stems.
-- **Post-write guard** (final cell): asserts the submission covers **exactly**
-  the test stems (no extra, no missing), every edge references an existing node
-  (0 dangling), and the `id` column is a clean `0..N-1` counter.
+| ref | date (UTC) | kernel / desc | publicScore | Notes |
+|-----|------------|---------------|-------------|--------|
+| 54830671 | 2026-07-19 | (prior honest bank lineage) | **0.902** | **Best COMPLETE honest** |
+| 54840764 | 2026-07-20 00:00 | v102 refine: subvoxel+intensity+dense FP | **0.895** | REGRESSION |
+| 54844836 | 2026-07-20 04:21 | v103 assoc: FN recovery + quality prune | **0.895** | REGRESSION |
+| 54862719 | 2026-07-20 21:28 | v100c bank restore | **PENDING** | Re-floor attempt |
+| 54863143 | 2026-07-20 22:05 | v110 350ep bank PP | **PENDING** | Weights push to 0.92 |
+| 54863473 | 2026-07-20 22:35 | (blank CLI desc; **v111 gapfn**) | **PENDING** | 5th daily; likely v111 |
 
-**Validated output** (`scratchpad/submitout/submission.csv`, 13 MB, 253740 rows):
+### 4.2 Exploit-era (do not revive)
+
+| ref | score | note |
+|-----|-------|------|
+| 54818110 | 0.970 | exploit |
+| 54818118 | 0.952 | exploit-era |
+| 54798567 etc. | 0.954–0.955 | FORKS/DUAL public-hack family |
+
+### 4.3 Blank / invalid
+
+| refs | cause |
+|------|--------|
+| 54821789, 54823772 | 5-movie measurement notebooks |
+
+---
+
+## 5. Kernel inventory (account `khalid000000`)
+
+All campaign kernels: **T4**, internet **OFF**, competition data + support packs.
+
+| Kernel | Status | Role | LB outcome |
+|--------|--------|------|------------|
+| `bh-v100c-submit` | COMPLETE | **Honest bank 0.900 recipe** | Restore submit PENDING; prior day 0.902 lineage |
+| `bh-v102-refine` | COMPLETE | subvoxel + intensity + dense FP | **0.895** |
+| `bh-v103-assoc` | COMPLETE | + quality prune + motion/GAP2 boost | **0.895** |
+| `bh-v104-ilp` | COMPLETE | ILP persistence on v103 stack | **Not submitted** (better-gate SKIP) |
+| `bh-v105-peak` | COMPLETE | peak COM only, no intensity/dense | **Not submitted** (control) |
+| `bh-v106-hybrid` | (local; may not be pushed) | peak+quality, intensity OFF | **Not submitted** |
+| `bh-v110-350ep` | COMPLETE | bank PP + **350ep weights** | submit **54863143** PENDING |
+| `bh-v111-gapfn` | COMPLETE | v110 + mild GAP2 FN | submit **54863473** PENDING |
+
+### Local output dirs (workspace)
 
 ```
-[preflight] TEST_DIR : .../biohub-cell-tracking-during-development/test
-[preflight] OK: exactly the 4 known test movies.
-[guard] OK: 4 datasets, 253740 rows, all edges valid, id column clean.
->>> submission.csv is SAFE TO SUBMIT.
+out_v102/  ~248490 rows  (0.895 stack)
+out_v103/  ~248426 rows
+out_v104/  ~248658 rows
+out_v105/  ~248655 rows
+out_v110/  ~283186 rows  (350ep heavier graph)
+out_v111/  ~283358 rows
 ```
 
-Per-movie counts: `44b6_0113de3b` 25576n/24816e · `44b6_0b24845f` 24671n/23146e ·
-`6bba_05b6850b` 6441n/6219e · `6bba_05db0fb1` 72433n/70438e.
+### Desktop
 
-**Generator:** `scratchpad/gen_submit.py`. Metadata:
-`kernel_submit/kernel-metadata.json` (`id khalid000000/bh-v100c-submit`,
-T4×2, `enable_internet: false`, dataset source
-`pilkwang/biohub-tracking-support-pack-50ep-v1`, competition source the comp).
-
-### 5.1 Submission hygiene (locked rules)
-
-- **Only submit a real SUBMIT-mode notebook** (`bh-v100c-submit` or the nextday
-  0.900 notebook) that runs on the competition test dir. **Never** submit
-  `bh-v100-clean` or `bh-v100b-verify` — those are measurement tools, emit 5
-  movies, and guarantee the blank-score error.
-- Any submission must contain **exactly the 4 test stems**. The post-write guard
-  enforces this; a bare `set(dataset) == {4 stems}` assert would have caught both
-  blank submits.
+- `C:\Users\Khalid\Desktop\bh-super-honest.ipynb` — **same as bank v100c recipe** (not better than bank; ~0.90 / ~0.872 post-patch expectations). Good readable “clean” packaging.  
+- `C:\Users\Khalid\Desktop\handoff.md` — mirror of this file after write.
 
 ---
 
-## 6. The pipeline & assets
+## 6. Locked bank recipe (v100c / super-honest) — DO NOT FORGET
 
-**Architecture:** UNet3D detection → node/edge transformer → ILP tracking
-(`trackastra` / `td.solvers.ILPSolver`) → 8-way D4 TTA → gap-recovery
-post-process. (Pre-patch it also appended the hub/ladder exploit; that cell is
-removed from the honest notebooks.)
+Proven multi-axis stack (lifted 0.899→0.900 historically; honest LB ~0.902):
 
-**Kaggle datasets (offline, `enable_internet: false`):**
-- `pilkwang/biohub-tracking-support-pack-50ep-v1` — offline wheels + support code
-- `hongdaekim/biohub-350ep-checkpoint-pin-v1` — trained checkpoints
-  (`edge_predictor_best.pth` etc.)
+```
+DET_THRESHOLD = 0.9725
+GAP_CLOSE max gap = 2
+OUTPUT_MIN_TRACK_LEN = 6
+GAP2_RECOVERY = ON
+  GAP2_MAX_TOTAL_UM = 9.7
+  GAP2_MAX_STEP_UM = 4.05
+  GAP2_MAX_LINKS_ABS = 140
+  GAP2_MAX_LINKS_FRAC = 0.0032
+  GAP2_REQUIRE_CONTEXT = 1
+  GAP2_FRAME_FRAC_CAP = 0.006
+DIVISION_GEOMETRY_FILTER = ON
+ADAPTIVE_SHORT_TRACK_RESCUE = ON (min_len 4, prob≥0.82, dist≤3.25, abs 180)
+MOTION_RELINK = ON (learned_bonus 1.0)
+SAFE_DIV geometry (pilkwang calibrated caps)
+ILP ON, division_weight 1.0, edge -1.0, app/dis 0.1
+FUSION OFF, DEEPCENTER veto OFF
+D4-style spatial detection TTA (400ep-style patch in predict script)
+Weights default: pilkwang/biohub-tracking-support-pack-50ep-v1
+  edge_predictor_best.pth under unet_transformer/split_0
+```
 
-**Key knobs:**
-- `POINT_THRESHOLD` / `BIOHUB_DET_THRESHOLD = 0.9725` (measured dead as a lever)
-- `ILP_DIVISION_WEIGHT = 1.05`, `ILP_EDGE_WEIGHT`, `disappearance_weight = 1.45`
-- Gap recovery: `GAP_MAX`, `GAP_RELINK_UM`, `GAP_CLOSE_UM`, `PRUNE_MIN_TRACK_LEN`
-- `BIOHUB_OUTPUT_GAP2_RECOVERY = 1`, `BIOHUB_ADAPTIVE_SHORT_TRACK_RESCUE = 1`
+**Guards (mandatory on every submit notebook):**
 
-**Note:** the Kaggle runner has **no Gurobi license** — the ILP falls back to
-SCIP automatically (`Solver failed with Gurobi, trying Scip`). Expected and
-harmless; runs complete fine.
+1. **Preflight:** `TEST_DIR` is competition test (not localval); exactly 4 stems  
+2. **Post-write:** submission stems == those 4; no dangling edges; print `SAFE TO SUBMIT`
+
+**Builders / paths:**
+
+- Notebook: `kernel_submit/bh-v100c-submit.ipynb`  
+- Metadata: `kernel_submit/kernel-metadata.json`  
+- Desktop twin: `bh-super-honest.ipynb`
 
 ---
 
-## 7. Kaggle mechanics (non-negotiable)
+## 7. Experiment diary (what we tried and learned)
 
-- **Code competition:** Kaggle re-runs the whole notebook. CSV-only / PP-only
-  submissions FORMAT_FAIL.
-- **GPU must be T4×2:** push with `--accelerator NvidiaTeslaT4` **and** metadata
-  `"machine_shape": "NvidiaTeslaT4"`. Bare GPU defaults to P100 (forbidden).
-- **~5 submissions/day** (UTC reset). Weekly GPU quota ~30h; max 2 concurrent
-  batch GPU sessions.
-- **Credentials:** `~/.kaggle/kaggle.json` (chmod 600); always
-  `export KAGGLE_CONFIG_DIR=~/.kaggle`.
-- **`kaggle kernels output` is slow** — the 13 MB submission.csv + tracking_repo
-  copy crowd out the log, which downloads last (often after a ~90s timeout).
-  Validate `submission.csv` directly first (authoritative), then re-run the
-  download for the log. Log format is JSON-lines prefixed with a comma; parse via
-  `json.loads(ln[1:] if ln[0]==',' else ln)`.
+### 7.1 v102 refine → **0.895**
+
+Intent: improve 6bba matching via:
+
+- Sub-voxel peak COM on det logits  
+- Float coords (no int16 snap)  
+- Full-res intensity COM refine every node  
+- Dense-movie FP control on `6bba_05db0fb1` (tighter EDGE_MAX / GAP2)
+
+**Result:** LB **0.895** (−0.007 vs bank). Intensity+dense package **hurt**.
+
+### 7.2 v103 assoc → **0.895**
+
+Intent: reverse over-tight dense + quality prune + stronger motion/GAP2.
+
+**Result:** again **0.895**. Quality prune dropped low-prob long edges; not a fix.
+
+### 7.3 v104 ILP / v105 peak / v106 hybrid
+
+Built COMPLETE (104/105). Under “submit only if better” policy: **SKIP** (no metric proof >0.902; 104 on hurt lineage; 105 ablation only).
+
+### 7.4 Bank restore submit `54862719`
+
+Re-submitted COMPLETE `bh-v100c-submit` to re-floor honest score after 0.895. **PENDING** at handoff.
+
+### 7.5 v110 350ep → submit `54863143`
+
+- Bank PP only (no intensity/dense/quality prune)  
+- Attached datasets:  
+  - `pilkwang/biohub-tracking-support-pack-50ep-v1`  
+  - `hongdaekim/biohub-350ep-checkpoint-pin-v1`  
+  - `shehailrs/biohub-tracking-350ep-public-weight-snapshot`  
+  - `subinium/biohub-v34-retrain-weights-mirror`  
+- Installs best `edge_predictor_best.pth` preferring **350ep** into **writable**  
+  `tracking_repo/weights_override/unet_transformer/split_0/edge_predictor_best.pth`  
+  and retargets `WEIGHTS_RELATIVE` (support-pack path is **read-only** hardlink — early v110 ERROR).
+
+**Gotchas fixed:**
+
+1. First v110 ERROR: `OSError: Read-only file system` on overwrite pack weights  
+2. Fix: `write_bytes` to `weights_override/...` + retarget relative path  
+3. Kernel version for successful run: **v3** of `bh-v110-350ep`
+
+Heavier graph (~283k rows vs ~248k bank) — more nodes/edges from 350ep.
+
+### 7.6 v111 gapfn → submit `54863473`
+
+v110 + mild GAP2 FN boost:
+
+```
+GAP2_MAX_TOTAL_UM = 10.4
+GAP2_MAX_STEP_UM = 4.35
+GAP2_MAX_LINKS_ABS = 175
+GAP2_MAX_LINKS_FRAC = 0.0040
+GAP2_FRAME_FRAC_CAP = 0.007
+MOTION_RELINK_LEARNED_BONUS = 1.1
+MOTION_RELINK_RELAXED_UM = 10.5
+```
+
++ same 350ep install. COMPLETE + SAFE; submitted as 5th daily. CLI list showed **blank description** for `54863473` but timestamp matches submit; treat as **v111**.
+
+### 7.7 Daily cap
+
+2026-07-20 used all **5** submits. Message:
+
+> Submission not allowed: daily Submission allowance (5) today, try again tomorrow UTC.
+
+---
+
+## 8. How to run / submit (ops cookbook)
+
+### 8.1 Push kernel
 
 ```bash
-export KAGGLE_CONFIG_DIR=~/.kaggle
-kaggle kernels push   -p kernel_submit --accelerator NvidiaTeslaT4
-kaggle kernels status khalid000000/bh-v100c-submit
-kaggle kernels output khalid000000/bh-v100c-submit -p out    # after COMPLETE
-kaggle competitions submit -c biohub-cell-tracking-during-development \
-    -k khalid000000/bh-v100c-submit -v <version> -m "<msg>"   # USER does this
+cd C:\Users\Khalid\Desktop\New_folder\vibecode
+python -m kaggle kernels push -p kernel_v110   # or kernel_v111, kernel_submit, ...
+python -m kaggle kernels status khalid000000/bh-v110-350ep
 ```
 
-Submission schema (node/edge rows):
-`id, dataset, row_type, node_id, t, z, y, x, source_id, target_id`,
-`row_type ∈ {node, edge}`.
+Metadata must include:
 
----
-
-## 8. File map
-
-```
-handoff.md                                  # this file — start here
-README.md                                   # pre-patch story (superseded by §0–5 here)
-kernel/
-  bh-v100c-submit.ipynb                      # READY-TO-SUBMIT honest notebook (guarded, ran green)
-  bh-v100-clean.ipynb                        # measurement tool (patched-metric scorer) — 5 movies, DO NOT SUBMIT
-  bh-v100b-verify.ipynb                      # measurement tool (honest value under patched metric) — DO NOT SUBMIT
-  bh-v101-sweep.ipynb                        # per-movie threshold sweep (proved the threshold lever dead)
-  bh-v99-ultimate.ipynb                      # 0.970 notebook (contains the exploit) — reference only
-  kernel-metadata.json                       # id khalid000000/bh-v100-clean, T4x2
-kernel_submit/
-  bh-v100c-submit.ipynb                      # copy pushed to Kaggle
-  kernel-metadata.json                       # id khalid000000/bh-v100c-submit, T4x2
-notebooks/                                   # repo copies of the above + reference notebooks
-analysis/
-  PATH_TO_1.md                               # the legitimate post-patch plan + §5 sweep + §6 verify results
-  PATCH_PIVOT.md                             # the patch mechanics + measured honest baseline
-  patched_metric_reference/                  # metrics.py + division_metrics.py (the PATCHED scoring code)
-  METRIC_ANALYSIS.md                         # exact reading of the ORIGINAL scoring code
-  grok-handoff.md                            # prior campaign handoff (pre-patch context)
+```json
+"machine_shape": "NvidiaTeslaT4",
+"enable_gpu": true,
+"enable_internet": false,
+"competition_sources": ["biohub-cell-tracking-during-development"],
+"dataset_sources": [ ... ]
 ```
 
----
-
-## 9. Immediate next actions
-
-1. **`bh-v102-refine` is running** (`khalid000000/bh-v102-refine` on T4×2).
-   When COMPLETE: download `submission.csv`, confirm post-write guard
-   `SAFE TO SUBMIT`, compare node/edge counts vs v100c. **User clicks submit**
-   if it looks good — no auto-submit.
-2. **`bh-v100c-submit` remains the safe bank.** Validated 4-movie CSV; honest
-   ~0.872 post-patch / ~0.900 pre-patch.
-3. **After Monday's re-score:** read the honest board for the real #1 target.
-4. **If v102 does not lift:** next axes are better edge weights / 350ep pin
-   ensemble / ILP weight probe — not more threshold spam.
-5. **Optional LB probe (post-Monday, one submit):** bump `ILP_DIVISION_WEIGHT`.
-
----
-
-## 10. bh-v102-refine (built 2026-07-19, Grok continuation)
-
-**Slug:** `khalid000000/bh-v102-refine`
-**Branch paths:** `kernel_v102/`, `kernel/bh-v102-refine.ipynb`, `notebooks/bh-v102-refine.ipynb`
-**Builder:** `_build_v102.py` (from `bh-v100c-submit`)
-**Metadata:** T4×2 (`machine_shape: NvidiaTeslaT4`), internet off, support pack only
-
-### What it changes vs v100c
-
-| Change | Why |
-|--------|-----|
-| Sub-voxel peak COM on det logits | Peaks on 4× XY grid (~1.6 µm); COM recovers sub-voxel centroids → better 7 µm match + edge distances |
-| Keep float coords through predict | Stop `int16` snap after upsample |
-| Full-res intensity COM refine (all nodes) | Same idea as gap synthetic refine; max shift 2.5 µm |
-| Dense FP control on `6bba_05db0fb1` only | Edge max 11.5 µm; tighter GAP2 (8.8/3.7, abs 110); motion relaxed 8.5 µm |
-
-Same DET=0.9725 + GAP2 + RESCUE + div-geom + D4 TTA. Same preflight + post-write
-guards. **No exploit. No fusion.**
-
-### Ops
+### 8.2 Download output
 
 ```bash
-export KAGGLE_CONFIG_DIR=~/.kaggle
-kaggle kernels status khalid000000/bh-v102-refine
-kaggle kernels output khalid000000/bh-v102-refine -p out_v102   # after COMPLETE
-# User submits via UI or:
-# kaggle competitions submit -c biohub-cell-tracking-during-development \
-#   -k khalid000000/bh-v102-refine -v <version> -m "v102 refine honest"
+python -m kaggle kernels output khalid000000/bh-v110-350ep -p out_v110
 ```
 
-### Run result (v1 COMPLETE, T4×2, ~11 min predict)
+### 8.3 Validate 4-movie SAFE (local)
 
-Patches applied: TTA D4, peak-COM refine, float coords. Intensity refine hit every node
-(0 rejected). Dense FP control applied only on `6bba_05db0fb1`. Post-write:
-**SAFE TO SUBMIT** (exactly 4 stems, 248490 rows, clean ids, 0 dangling edges).
+```bash
+python tests/test_submission_guards.py
+python -c "from pathlib import Path; from tests.test_submission_guards import validate_submission_csv; print(validate_submission_csv(Path('out_v110/submission.csv')))"
+```
 
-| movie | v102 n/e | v100c n/e | Δn / Δe |
-|-------|---------:|----------:|--------:|
-| 44b6_0113de3b | 25378 / 24637 | 25576 / 24816 | −198 / −179 |
-| 44b6_0b24845f | 23275 / 21796 | 24671 / 23146 | **−1396 / −1350** |
-| 6bba_05b6850b | 6297 / 6082 | 6441 / 6219 | −144 / −137 |
-| **6bba_05db0fb1** | **71579 / 69446** | 72433 / 70438 | **−854 / −992** |
+Or:
 
-Leaner graphs (short-track filter + denser association geometry). Could help node
-penalty on 6bba (was over-detecting) or hurt if real edges were dropped — only an
-LB submit tells. Local out: `vibecode/out_v102/submission.csv`.
+```bash
+python tests/offline_compare_submissions.py --cand out_v111/submission.csv --bank out_v110/submission.csv
+```
+
+### 8.4 Submit (code-comp)
+
+```bash
+python -m kaggle competitions submit biohub-cell-tracking-during-development \
+  -k khalid000000/bh-v111-gapfn -v 1 -f submission.csv \
+  -m "honest description"
+```
+
+### 8.5 Poll scores
+
+```bash
+python -m kaggle competitions submissions -c biohub-cell-tracking-during-development
+```
+
+Scoring can stay **PENDING for many hours** (code re-run / queue). Do not invent scores.
+
+### 8.6 Builders in repo
+
+| Script | Output |
+|--------|--------|
+| `_build_v102.py` | kernel_v102 |
+| `_build_v103.py` | kernel_v103 |
+| `_build_v104.py` | kernel_v104 |
+| `_build_v105.py` | kernel_v105 |
+| `_build_v106.py` | kernel_v106 |
+| `_build_v110_350ep.py` | kernel_v110 (bank + 350ep) |
+| `_build_v111_gapfn.py` | kernel_v111 (from v110 + GAP2) |
+
+Tests: `tests/test_submission_guards.py`, `tests/offline_compare_submissions.py`, `tests/gate_candidates.py`.
+
+---
+
+## 9. Weight assets (Kaggle datasets)
+
+| Dataset | Use |
+|---------|-----|
+| `pilkwang/biohub-tracking-support-pack-50ep-v1` | Repo + wheels + default 50ep weights (**required**) |
+| `hongdaekim/biohub-350ep-checkpoint-pin-v1` | Preferred **350ep** `edge_predictor_best.pth` |
+| `shehailrs/biohub-tracking-350ep-public-weight-snapshot` | Alt 350ep tree |
+| `shehailrs/biohub-tracking-300ep-public-weight-snapshot` | 300ep fallback |
+| `subinium/biohub-v34-retrain-weights-mirror` | Retrain mirror |
+| `pilkwang/biohub-deepcenter-unet3d-center-prior-v1` | DeepCenter (fusion **off** — do not enable lightly) |
+| `pilkwang/biohub-local-association-ranker-unet300-v1` | Association ranker (not integrated yet) |
+
+**Weight install lesson:** never `shutil.copy2` over hardlinked pack weights. Use writable override path + retarget `WEIGHTS_RELATIVE` (see v110 builder).
+
+---
+
+## 10. Strategy for next week (aim 0.920+ honest)
+
+### 10.1 Decision tree after PENDING scores land
+
+```
+poll 54862719, 54863143, 54863473
+best = max(0.902, those COMPLETE honest scores)
+
+if best >= 0.920:
+    bank that kernel; small safe tweaks only
+elif v110 or v111 > 0.902:
+    iterate ON THAT STACK (weights / mild assoc) — not v102 refine
+elif all <= 0.902:
+    stay on v100c bank PP; try other public weights or training
+never:
+    hub/ladder, fusion ADD, re-run 0.895 intensity+dense+quality package
+```
+
+### 10.2 Highest-EV honest axes remaining
+
+1. Confirm 350ep LB vs 50ep bank  
+2. Other checkpoints (300ep, v34 retrain) A/B with **identical bank PP**  
+3. Own fine-tune if compute allows (`biohub_path_to_1` training roadmap under `New_folder\biohub_path_to_1`)  
+4. Careful GAP2/motion **only if** 350ep is already ≥ bank  
+5. Integrate association ranker only with offline/local metric proof  
+6. Post-Monday: if board is pure edge, optimize for patched metric only
+
+### 10.3 What not to waste slots on
+
+- DET threshold sweeps  
+- Fusion / DeepCenter add  
+- Random multi-knob refine stacks  
+- Submitting 5-movie measurement notebooks  
+- Public 0.95 “solutions” that are just metric hacks  
+
+### 10.4 Selective submit policy (user preference)
+
+User asked to push hard, then later “submit only if better”, then “submit anything you think better without waiting.”  
+**Practical default for next week:** prefer better-gate when scores exist; when PENDING long and slots remain, only submit **clear high-EV** deltas (new weights or proven bank), not ablations.
+
+---
+
+## 11. Analysis docs in repo (read if stuck)
+
+| Path | Content |
+|------|---------|
+| `analysis/PATCH_PIVOT.md` | Patch + honest 0.925 local story |
+| `analysis/PATH_TO_1.md` | Levers; v101 dead thr; verify |
+| `analysis/METRIC_ANALYSIS.md` | Metric decomposition |
+| `analysis/patched_metric_reference/` | Host-like metric code |
+| `analysis/grok-handoff.md` | **Pre-patch** (outdated strategy) |
+| `README.md` | May still mention old 0.97 story — **trust this handoff** |
+
+Local training / path work: `C:\Users\Khalid\Desktop\New_folder\biohub_path_to_1\`
+
+---
+
+## 12. Git state
+
+- Branch: `claude/kaggle-notebook-optimization-ehdava`  
+- Remote: `origin` → `https://github.com/KHHH2312/vibecode.git`  
+- Recent commits include v102–v111 builders, guard tests, better-gate tooling, 350ep weight fix  
+
+Do **not** commit huge `out_v*/` trees if avoidable (local artifacts).
+
+---
+
+## 13. Account / CLI
+
+```bash
+# Auth: %USERPROFILE%\.kaggle\kaggle.json
+python -m kaggle competitions submissions -c biohub-cell-tracking-during-development
+python -m kaggle kernels status khalid000000/bh-v110-350ep
+python -m kaggle kernels push -p kernel_v110
+```
+
+Account on LB as **Khalid** (team id appeared near 0.970 with exploit-era submissions historically).
+
+---
+
+## 14. Honest post-patch value of bank (numbers to remember)
+
+From 4-movie patched verify of 0.900 recipe:
+
+- micro edgeJ ≈ **0.874**  
+- weighted adj ≈ **0.872**  
+- divJ ≈ **0** locally (0/3 divisions)  
+- Pre-patch LB same stack ≈ **0.900–0.903**  
+- **v102/v103 LB = 0.895** — worse  
+
+---
+
+## 15. Checklist for next agent (Monday+)
+
+- [ ] Poll all PENDING refs; write scores into a short `campaign_scores.md`  
+- [ ] Update best honest baseline  
+- [ ] If 350ep helped: freeze recipe, try next weight or mild GAP2 only  
+- [ ] If 350ep failed: drop back to v100c; investigate architecture/config mismatch  
+- [ ] Never attach hub/ladder  
+- [ ] Always 4-movie SAFE + T4 metadata  
+- [ ] Code-comp submit `-k -v -f submission.csv`  
+- [ ] Respect 5/day UTC  
+- [ ] Aim 0.920+ honestly; if public ceiling is ~0.91, document blockers (weights) without exploiting  
+
+---
+
+## 16. One-paragraph strategy
+
+We abandoned the **hub/ladder division exploit** after the host patch; public 0.95+ notebooks still use it and are not honest targets. Our best **COMPLETE honest** score is **0.902** (bank). **v102/v103 refine** regressed to **0.895** — do not rebuild that stack. Current honest push is **bank post-process + public 350ep weights** (v110/v111, PENDING at handoff). The score is dominated by **edge quality on `6bba_05db0fb1`**. User goal is **0.920+ honest**; that needs better weights or real association gains, not metric gaming. Next session: **read scores first**, then iterate only on what beat 0.902.
+
+---
+
+*End of full handoff. Written for a multi-day gap; all campaign decisions, failures, ops, and next steps above.*
