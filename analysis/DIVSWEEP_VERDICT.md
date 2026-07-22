@@ -73,3 +73,32 @@ Combined with the division sweep, weight swaps, refine/assoc tweaks, and
 threshold sweep all landing ≤ bank, the honest ceiling with public assets is
 **confirmed at ~0.902 pre-patch**. The gap to the 0.96+ leaders reflects private
 training data/weights, not a public post-processing or ensembling lever.
+
+---
+
+## Edge-TTA screen (bh-edgetta-screen-v1) — 2026-07-22
+
+**Result: edge-level TTA HELPS. +0.0084 raw-ILP edge_jaccard. First lever to beat the bank.**
+
+Average the single 50ep edge predictor's probabilities over spatial-flip views
+(y, x, xy), flips applied consistently in the downsampled unet grid. Detector
+fixed single-pass 50ep (identical node set). Raw-ILP `edge_jaccard`, 6 GT movies:
+
+| movie | single | edge-TTA | Δ | eTP/eFP/eFN single→tta |
+|-------|-------:|---------:|------:|------------------------|
+| 6bba_57b7cc1e (dominant) | 0.6565 | 0.6704 | +0.0140 | 1225/274/367 → 1245/265/347 |
+| 44b6_0c582fdc | 0.9041 | 0.9155 | +0.0114 | 66/3/4 → 65/1/5 |
+| 44b6_d5e7d891 | 0.8092 | 0.8192 | +0.0100 | 789/82/104 → 793/75/100 |
+| 6bba_337b1b3a | 0.9611 | 0.9683 | +0.0072 | 1186/21/27 → 1193/19/20 |
+| 44b6_12dfb391 | 0.8764 | 0.8791 | +0.0027 | 716/44/57 → 720/46/53 |
+| 6bba_062c8d37 | 0.9978 | 0.9978 | 0.0000 | 896/0/2 → 896/0/2 |
+| **micro-avg** | **0.8320** | **0.8404** | **+0.0084** | |
+
+Gain on every movie (or tie), largest on the dominant one: more true edges,
+fewer misses AND fewer false positives — the signature of variance-reducing TTA
+on a strong model, without the dilution that killed the multi-model ensemble.
+
+**Consequence:** edge-TTA is the honest lever that beats the bank. Building the
+full bank-PP test submission with edge-TTA on. Expected LB: ~0.905-0.910
+pre-patch (raw +0.0084 partially absorbed by gap-close/rescue in PP). Still short
+of 0.920 (private-data gap), but a genuine honest improvement over 0.902.
