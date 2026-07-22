@@ -40,3 +40,36 @@ result is evidence *against* "just train longer" helping this metric.
 
 **Recommendation:** honest best submission remains the bank (0.902). Do NOT submit any
 safe-division variant — none beat the bank.
+
+---
+
+## Ensemble edge-predictor screen (bh-ens-screen-v1) — 2026-07-22
+
+**Result: the 3-model edge-logit ensemble HURTS. Dead lever.**
+
+Averaging `sigmoid(predict_edges)` across {50ep, 350ep, v34} (identical
+architecture, detector fixed to 50ep so node sets match), scored raw-ILP
+`edge_jaccard` with the patched metric on 6 GT train movies:
+
+| movie | single 50ep | ensemble | Δ | eTP/eFP/eFN single→ens |
+|-------|------------:|---------:|------:|------------------------|
+| 6bba_57b7cc1e (dominant) | 0.6565 | 0.6387 | −0.0178 | 1225/274/367 → 1188/268/404 |
+| 44b6_d5e7d891 | 0.8092 | 0.7932 | −0.0160 | 789/82/104 → 775/84/118 |
+| 44b6_12dfb391 | 0.8764 | 0.8707 | −0.0056 | 716/44/57 → 714/47/59 |
+| 6bba_337b1b3a | 0.9611 | 0.9579 | −0.0032 | 1186/21/27 → 1182/21/31 |
+| 44b6_0c582fdc | 0.9041 | 0.9041 | 0.0000 | 66/3/4 → 66/3/4 |
+| 6bba_062c8d37 | 0.9978 | 0.9978 | 0.0000 | 896/0/2 → 896/0/2 |
+| **micro-avg** | **0.8320** | **0.8224** | **−0.0096** | |
+
+**Why:** 350ep and v34 are individually *weaker* edge predictors (both
+regressed to 0.901 on the LB vs 50ep's 0.902). Prob-averaging them in *dilutes*
+the stronger 50ep signal — it drops true edges (eTP down) and adds misses
+(eFN up), worst on the dominant movie. There is no diversity benefit because the
+extra models are not better, just worse-and-correlated.
+
+**Consequence:** "better edge predictor via public weights" is now fully
+exhausted (single-350ep regressed, single-v34 regressed, 3-way ensemble hurts).
+Combined with the division sweep, weight swaps, refine/assoc tweaks, and
+threshold sweep all landing ≤ bank, the honest ceiling with public assets is
+**confirmed at ~0.902 pre-patch**. The gap to the 0.96+ leaders reflects private
+training data/weights, not a public post-processing or ensembling lever.
