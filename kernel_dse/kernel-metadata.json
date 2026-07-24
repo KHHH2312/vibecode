@@ -1,0 +1,26 @@
+{
+  "id": "khalid000000/bh-dse-m2div-v2",
+  "title": "bh-dse-m2div-v2",
+  "code_file": "bh-dse-m2div.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "dataset_sources": [
+    "hongdaekim/biohub-350ep-checkpoint-pin-v1",
+    "pilkwang/biohub-deepcenter-unet3d-center-prior-v1",
+    "pilkwang/biohub-temporal-unet3d-seed314159-v1",
+    "shehailrs/biohub-tracking-350ep-public-weight-snapshot",
+    "pilkwang/biohub-tracking-support-pack-50ep-v1",
+    "pilkwang/pilkwang-public-dataset-for-notebooks-figures",
+    "maherelouahabi/biohub-tracker-m2div-deploy"
+  ],
+  "kernel_sources": [],
+  "competition_sources": [
+    "biohub-cell-tracking-during-development"
+  ],
+  "model_sources": [],
+  "machine_shape": "NvidiaTeslaT4"
+}
