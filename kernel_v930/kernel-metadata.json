@@ -1,0 +1,28 @@
+{
+  "id": "khalid000000/bh-v930-max",
+  "title": "bh-v930-max",
+  "code_file": "bh-v930-max.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "dataset_sources": [
+    "hongdaekim/biohub-350ep-checkpoint-pin-v1",
+    "hongdaekim/biohub-300ep-checkpoint-pin-v1",
+    "pilkwang/biohub-deepcenter-unet3d-center-prior-v1",
+    "pilkwang/biohub-temporal-unet3d-seed314159-v1",
+    "shehailrs/biohub-tracking-350ep-public-weight-snapshot",
+    "subinium/biohub-v34-retrain-weights-mirror",
+    "pilkwang/biohub-tracking-support-pack-50ep-v1",
+    "pilkwang/pilkwang-public-dataset-for-notebooks-figures",
+    "beyondlogic/biohub-training-code-b"
+  ],
+  "competition_sources": [
+    "biohub-cell-tracking-during-development"
+  ],
+  "kernel_sources": [],
+  "model_sources": [],
+  "machine_shape": "NvidiaTeslaT4"
+}
