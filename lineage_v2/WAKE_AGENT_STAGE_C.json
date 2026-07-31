@@ -1,0 +1,7 @@
+{
+  "utc": "2026-07-29 15:32:18 UTC",
+  "kernel": "ikoooooooooooop/bh-lineage-realc-e1",
+  "outcome": "CANCEL",
+  "status": "ikoooooooooooop/bh-lineage-realc-e1 has status \"KernelWorkerStatus.CANCEL_REQUESTED\"",
+  "action": "Agent: verify C health; chain should push DE if ok; then DE\u2192primary"
+}

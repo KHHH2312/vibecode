@@ -1,0 +1,18 @@
+{
+  "id": "khalidmokarram/bh-lineage-stagea-11h",
+  "title": "bh-lineage-stageA-11h",
+  "code_file": "bh-lineage-stageA-11h.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "dataset_sources": [
+    "khalidmokarram/lineage-v2-src"
+  ],
+  "competition_sources": [],
+  "kernel_sources": [],
+  "model_sources": [],
+  "machine_shape": "NvidiaTeslaT4"
+}

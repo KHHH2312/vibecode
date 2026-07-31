@@ -1,0 +1,25 @@
+{
+  "enable_tpu": false,
+  "competition_sources": [
+    "biohub-cell-tracking-during-development"
+  ],
+  "kernel_sources": [],
+  "kernel_type": "notebook",
+  "title": "bh-lineage-realde-f1",
+  "code_file": "bh-lineage-realde-f1.ipynb",
+  "id": "jiiiiiiiim/bh-lineage-realde-f1",
+  "is_private": true,
+  "language": "python",
+  "keywords": [
+    "gpu"
+  ],
+  "model_sources": [],
+  "docker_image": "gcr.io/kaggle-private-byod/python@sha256:37c64f7dd9c54116ecd1bcc88817c5469b88387388fade02bfa8bf3fc647d461",
+  "machine_shape": "NvidiaTeslaT4",
+  "dataset_sources": [
+    "jiiiiiiiim/lineage-v2-src",
+    "jiiiiiiiim/lineage-v2-warm"
+  ],
+  "enable_gpu": true,
+  "enable_internet": false
+}

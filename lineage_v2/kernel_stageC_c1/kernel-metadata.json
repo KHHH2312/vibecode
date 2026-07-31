@@ -1,0 +1,19 @@
+{
+  "id": "khalid000000/bh-lineage-stagec-c1",
+  "title": "bh-lineage-stageC-c1",
+  "code_file": "bh-lineage-stageC-c1.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "dataset_sources": [
+    "khalid000000/lineage-v2-src",
+    "khalid000000/lineage-v2-stageb-b1"
+  ],
+  "competition_sources": ["biohub-cell-tracking-during-development"],
+  "kernel_sources": [],
+  "model_sources": [],
+  "machine_shape": "NvidiaTeslaT4"
+}

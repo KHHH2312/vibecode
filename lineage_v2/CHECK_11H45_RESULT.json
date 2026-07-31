@@ -1,0 +1,9 @@
+{
+  "train_meta": "",
+  "action": "AGENT: analyze C health; if COMPLETE proceed DE dual; if still RUNNING wait; if CANCEL/ERROR report",
+  "log_tail": "",
+  "kernel": "ikoooooooooooop/bh-lineage-realc-e1",
+  "pull": "",
+  "utc": "2026-07-30 03:32:34 UTC",
+  "status": "ikoooooooooooop/bh-lineage-realc-e1 has status \"KernelWorkerStatus.RUNNING\""
+}

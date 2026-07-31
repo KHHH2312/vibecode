@@ -1,0 +1,21 @@
+{
+  "id": "khalid000000/bh-lineage-stagede-de1",
+  "title": "bh-lineage-stageDE-de1",
+  "code_file": "bh-lineage-stageDE-de1.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "dataset_sources": [
+    "khalid000000/lineage-v2-src",
+    "khalid000000/lineage-v2-stagec-c1"
+  ],
+  "competition_sources": [
+    "biohub-cell-tracking-during-development"
+  ],
+  "kernel_sources": [],
+  "model_sources": [],
+  "machine_shape": "NvidiaTeslaT4"
+}

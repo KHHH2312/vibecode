@@ -1,10 +1,45 @@
 # Local kernel output trees (downloaded from Kaggle; large, not source)
 out_v*/
 out_*/
+out_stage*/
+out_real*/
+_tmp_*/
+compare_primary/
+hybrid_submit_out/
 
-# Background poller logs / local state
-wait_v112.py
-wait_score.py
+# Checkpoints / weights (live on Kaggle datasets, not git)
+*.pt
+*.pth
+*.ckpt
+*.bin
+*.safetensors
+*.onnx
+*.h5
+*.npz
+*.pkl
+*.pickle
+
+# Warm / weight dataset dumps (metadata-only may be force-added if needed)
+lineage_v2/dataset_warm_*/
+lineage_v2/dataset_stageC_weights/
+lineage_v2/**/wheels/
+
+# Logs / poller state
+*.log
 .auto_campaign_state.json
 __pycache__/
 *.pyc
+*.pyo
+.pytest_cache/
+.ipynb_checkpoints/
+*.egg-info/
+.DS_Store
+Thumbs.db
+
+# Secrets — NEVER commit
+**/kaggle.json
+**/*kaggle*.json
+.env
+.env.*
+*.pem
+credentials*
