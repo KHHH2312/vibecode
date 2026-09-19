@@ -352,6 +352,14 @@ The reason it was missed for so long: the original hand sweep tried only 28 / 32
   absolutely, over-selling only costs price. The replay statistic is real but does not transfer to
   an agent that already has a wide sell horizon.
 - **`_ADV_TO` is already maximal (718)** — no headroom in the layer's upper step bound.
+- **`_ADV_GATE_ITEMS` is already the correct set, and extending it is inert.** The widened horizon
+  (`_adv_far`) only fires for goods in this tuple, so it reaches 4 of the 7 traded goods. Adding EGG
+  (54%, +0 ± 2), EGG+CARROT+TOMATO (54%, +0 ± 2) or CARROT+TOMATO (50%, +0 ± 2) does nothing —
+  36-48 ties out of 50. This was retested deliberately because the original dismissal predated the
+  horizon win, but it holds, and the replay data says why: the top teams' price edge is +14% MELON,
+  +11.2% STRAWBERRY, +7.3% MILK, +6.4% WOOL and **~0% on EGG/TOMATO/WHEAT**. Selling a flat-curve
+  good earlier gains nothing. The tuple already contains exactly the four steep-curve goods.
+- **`_ADV_PROTECT=True` is bad** — 4.0%, −325.
 - **Parameter tuning is exhausted.** GATE 0.74-0.90 flat (±15 coins); GATE_WIN 16-32 flat;
   `LIQ_FROM` 660-684 **exactly inert**; BOOST 0.90-1.12 all worse (−548 at 1.12).
   The day-28 liquidation layer shipped in v55 does nothing measurable — 40 of the 41 tapes already
