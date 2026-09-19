@@ -18,25 +18,17 @@ ladder's own ratings are not directly comparable either. Start at 3.0.
 | v57 | 56343311 | v55 + `_ADV_LOOK_HI=44` | **2716** — 93 games, 77.4% W (highest rating) |
 | v58 | 56347520 | v57 + non-yarn route table → constant 124 | 2579 — 70 games, 74.3% W |
 | v59 | 56351569 | v57 + yarn branch → route 7 | 2442 — 62 games, 82.3% W |
-| v60 | 56353015 | v57 + `_ADV_SUBTRACT_DEBTS=True` | 2621 — 58 games, 79.3% W |
-| v61 | 56356463 | **CONTROL — byte-identical to v57** | 1740 — 13 games, climbing |
+| v60 | 56353015 | v57 + `_ADV_SUBTRACT_DEBTS=True` | 2656 — 78 games, 75.6% W |
+| v61 | 56356463 | **CONTROL — byte-identical to v57** | 2294 — 34 games, 85.3% W |
 
-Last sampled 11:37Z. **Compare these at equal game counts, not as they stand** — see 3.0b, where
-v60 and v57 turn out to be level.
+Last sampled 12:37Z. **This column is not a ranking and the differences in it are not real.**
 
-**v61 is the most useful submission of the day.** It is the same file as v57 (hash-verified), so the
-gap it ends up at from v57 *is the noise floor* for comparing any two of our submissions. Read it
-first: if v57 and v61 land within ~50 points, the differences in this table mean something; if they
-land 200+ apart, none of tonight's ladder verdicts do, and candidates must be judged another way.
-No control like this had ever been run, which is why the noise floor was unknown and the verdicts
-were stated with more confidence than they deserved.
+**The control settles it.** v61 is the same file as v57, and at the same point on the curve they are
+**256 points apart** (v57 2550 at 33 games, v61 2294 at 34). Every gap in this table is smaller
+than that, so none of them is evidence of anything. See 3.0.
 
-**Do not read that column as a ranking.** All five are still winning 74-94% of their games, so none
-has converged, and the ratings differ largely by submission age under a decayed K-factor. See 3.0.
-
-**v57 holds the highest rating**, and the leaderboard takes your best submission, so keep it. But it
-is *not* established as the strongest build — see 3.0 for why these ratings cannot be compared
-across submissions of different ages.
+**Keep v57 live** — it holds the highest rating and the leaderboard takes your best. But it is not
+established as the strongest build, and nothing here establishes that any other build is worse.
 
 **Submissions: 5 per day, UTC reset 00:00Z.** All five for 19 Sep are spent (v57, v58, v59, v60,
 v61); the next five arrive at 00:00Z 20 Sep. Each restarts at 600 Elo, climbs fast for ~40 games, then crawls once K decays.
@@ -49,13 +41,12 @@ the opposite reason to the one I first gave: the rating is stuck, not the agent.
 ### The prediction I made, and how it went
 
 Before their results were known I predicted v60 (a market-behaviour change) would edge v57, and v59
-(a tape-selection change) would not. Judged on raw ratings it looked half wrong, because v60 was
-still young. **Judged at equal game counts — the only sound comparison — both halves held:**
-v60 2621 (58 games) vs v57 2611 (54); v59 2442 (62) vs v57 2611 (54).
+(a tape-selection change) would not. At equal game counts both halves appeared to hold: v60 2621
+(58 games) vs v57 2611 (54); v59 2442 (62) vs v57 2611 (54).
 
-That is mild support for the class rule in 3.1, not proof. v60's +10 is well inside noise, and the
-v61 control will say whether v59's −169 is outside it. Do not upgrade the rule from hypothesis until
-v61 gives a noise floor.
+**Then the control measured the noise floor at 256 points, and both margins are inside it.** The
+prediction is neither confirmed nor refuted — the experiment could not have resolved it either way.
+That is the honest outcome, and it is why 3.1 stays a hypothesis.
 
 ---
 
