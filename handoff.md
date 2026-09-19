@@ -256,6 +256,24 @@ rt107 57.5%; everything else −700 to −8200 (worst rt117, 10.0% / −8178).
 
 Tool: `mkroute.py` (`RT_NEW=` non-yarn branch, `RT_OLD=` yarn branch).
 
+**Per-pair breakdown (`routesplit.py`, 90 games, 31 distinct layouts).** This is the strongest
+evidence for the change, because it shows the win is not concentrated in a few lucky seeds:
+
+```
+non-yarn pairs (22)   66W-2L      margins +958 to +6061
+yarn pairs (9)        all TIES    +0        (override does not touch that branch — a correctness check)
+only losing pair      FARMERS_MARKET/SMOOTHIE_SHOP  0W-2L, -93 coins over 2 games
+TOTAL                 66W-2L-22T  mean +1459
+```
+
+Route 124 beats the table's pick on **30 of 31 layouts**. There is therefore no hybrid table worth
+building — 124 dominates almost everywhere.
+
+**The yarn branch is different, and that is a useful control.** Forcing route 0 on yarn layouts
+(`ro0` vs v58) gives 16W-14L-90T, mean +86 — a wash, with `ICE_CREAM_SHOP/YARN_STORE` at +4108 but
+`YARN_STORE/BAKERY` at −5538. So the yarn table is *not* uniformly wrong the way the non-yarn one
+was. It also shows `routesplit.py` does not manufacture one-sided results.
+
 **Known regression:** v58's panel is 184W-26L, but `b48_open25` drops 100% → 53.3% and
 `aurax7-v7` 100% → 73.3%. Both stay positive on coins (+887, +1421) but v58 trades reliability
 against those two openings for a bigger margin everywhere else.
