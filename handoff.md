@@ -82,10 +82,36 @@ foreign agents in the panel.
 > validated against **external agents that are not from our lineage** before it is submitted.
 > Head-to-head superiority over the previous champion is *not* evidence of ladder strength.
 
-This casts doubt on every gain validated the same way, including `_ADV_LOOK_HI=44`. That
-re-validation (v55 / v56 / lh44 / v58 against auto-top1, salemali7-2900 and thomastschinkel) is the
-single most valuable thing to finish. If LOOK_HI=44 also fails externally, the correct live build
-may be v55 or v56 rather than v57.
+### External re-validation: every step made us weaker outside
+
+Against `auto-top1`, the only opponent of the three that discriminates (40 games, grid 5200000/8117):
+
+| build | change | score | record |
+|---|---|---|---|
+| v55 | LOOK_HI=32, table router | **97.5%** | 39W-1L |
+| v56 | LOOK_HI=36 | 95.0% | 38W-2L |
+| lh44 (= v57) | LOOK_HI=44 | 90.0% | 36W-4L |
+| v58 | + route 124 | **67.5%** | 27W-13L |
+
+**The exact reverse of the self-play ordering, and monotonic.** Against `salemali7-2900` all four
+score 100% and against `thomastschinkel` all four score 97.5% — those opponents are saturated and
+cannot tell our builds apart, which is why this went unnoticed for so long.
+
+Strength of evidence, stated honestly:
+- **v58's regression is solid.** 27W-13L against 36-39W is far outside noise.
+- **v55 > v56 > lh44 is suggestive but NOT statistically significant.** 39W-1L vs 36W-4L is a
+  three-game difference over 40 games. Do not act on that ordering without more evidence.
+
+### The real infrastructure problem
+
+We have almost no discriminating opponents. **Only 23 of the 49 extracted agents even load** — the
+other 26 each return a fake 0W-30L that reads like a crushing win. Of the three externals tried,
+two are saturated. Effectively every tuning decision in this project was made against ourselves.
+
+A screen of all 23 loadable agents was running when this was written (`/tmp/screen.out`, lh44 at 6
+seeds each). **Build the external panel from the ones that score below ~95%, and make it the
+submission gate.** Until that exists, no measurement here can distinguish a real gain from a
+self-play artifact.
 
 ---
 
