@@ -42,13 +42,25 @@ advance-sell, gate or boost layers.
 > plain text search for tape entries returns 0 because the tapes live inside a `b'...'` literal.
 > Decode embedded source with `ast` before concluding anything about it.
 
-So there is no architectural secret: an *older* base with *different* wrappers beats our heavily
-tuned one. That points at their wrappers, or at a weakness in ours.
+**The "it beats v58" result did not survive cross-validation.** Full picture, auto-top1's score
+against v58:
 
-**Immediate follow-up this raises:** v58's panel showed regressions against `b48_open25`
-(100% → 53.3%) and `aurax7-v7` (100% → 73.3%). If v58 is weaker than v57 against real, diverse
-opponents, the route-124 change may be a regression that was submitted on self-play evidence.
-Test `auto-top1` against **v57/lh44** as well as v58 before drawing conclusions.
+| grid | auto-top1 score | margin |
+|---|---|---|
+| 4700000/6229 | 60% | (the original, single-grid result) |
+| 8100000/4441 | 58% | +102 ± 217 — a tie |
+| 3300000/7727 | **24%** | −1492 ± 321 |
+| 1900000/5113 | **42%** | −838 ± 309 |
+
+Pooled, **v58 is ahead at roughly 59%**. This was the *fourth* single-grid false positive in the
+project (see Methodology). It was reported as a headline finding before validation; it was not real.
+
+What remains true and useful: auto-top1 is the same chassis forked earlier, so there is no secret
+architecture anywhere in the public field, and no public agent measured so far beats v58.
+
+**Still open:** v58's panel regressions against `b48_open25` (100% → 53.3%) and `aurax7-v7`
+(100% → 73.3%) mean route-124 may help in self-play while hurting against diverse real opponents.
+The clean test is v57/lh44 vs auto-top1 on the same three grids, compared with v58's scores above.
 
 ---
 
