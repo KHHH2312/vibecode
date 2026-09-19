@@ -13,9 +13,13 @@ believing measurements that were not real.
 
 | build | submission | what it is | result |
 |---|---|---|---|
-| v55 | 56334083 | gate 0.82 + boost LOOK_HI=36 + day-28 sweep | ~2400, climbed slowly |
-| v57 | 56343311 | v55 with `_ADV_LOOK_HI=44` | **flattened at 2611**, drift +1.5/game |
-| v58 | 56347520 | v57 with the route table replaced by constant route 124 | live, submitted 03:52Z 19 Sep |
+| v55 | 56334083 | gate 0.82 + LOOK_HI=36 + day-28 sweep | **2417, CONVERGED** over 111 games |
+| v57 | 56343311 | v55 with `_ADV_LOOK_HI=44` | **2715**, 71W-20L — best confirmed |
+| v58 | 56347520 | v57 + non-yarn table replaced by constant route 124 | 2558 at 06:55Z, still climbing — **verdict pending** |
+| v59 | 56351569 | v57 + **yarn** branch → route 7 (no route-124) | submitted 07:00Z 19 Sep |
+
+**v59 is the current best bet**: it stacks a four-grid-validated change onto v57, the only build
+the ladder has endorsed, and deliberately omits route-124 while that remains unproven.
 
 Submissions: **5 per day, UTC reset 00:00Z.** On 19 Sep, v57 and v58 are spent; three remain.
 Every submission restarts at 600 Elo.
