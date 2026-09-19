@@ -126,19 +126,20 @@ Trajectories recorded live on 19 Sep (rating at game count). This is the sound c
 for, and it was reconstructible from data already collected:
 
 ```
-games:        ~12      ~26      ~40      ~55      ~70      ~93
-v57          —       2464     ~2580    2611     2660     2716
-v58         1811     ~2400     2526    2558     2572     —
-v59         1700ish  2217      2386    2424     —        —
-v60         —        2435     2546     —        —        —
+games:        ~13      ~26      ~40      ~55-60    ~70      ~93
+v57           —       2464     ~2580    2611(54)  2660     2716
+v58          1811(12) ~2400     2526    2572(61)  2579     —
+v59          1849(15)  2217     2386    2442(62)  —        —
+v60           —        2435     2546    2621(58)  —        —
+v61 (control) 1740(13)  —        —        —        —        —
 ```
 
-**At ~40 games: v57 ~2580, v60 2546, v58 2526 — a spread of ~55 points.** At final observation the
-same three read 2716 / 2546 / 2579, a spread of ~170. Most of the apparent difference is therefore
-**age, not strength**, exactly as 3.0 predicts.
+**At ~55-60 games the order is v60 2621, v57 2611, v58 2572, v59 2424** — v60 and v57 are level, and
+the three-way spread is ~50 points against ~170 at final observation. Most of the apparent
+difference is **age, not strength**, exactly as 3.0 predicts.
 
-v59 is the one that still looks genuinely weaker: ~195 below v57 at equal game count, and behind at
-every point on the curve.
+This vindicates v60 specifically: it was called a failure at 39 games and is level with v57 at 58.
+**v59 is the only build that genuinely trails**, behind at every point on its curve.
 
 **Method to reuse:** log `(games, elo)` for every submission, not just the latest rating, and
 compare candidates at equal game counts. `watch.py` already prints both; nothing new is needed
