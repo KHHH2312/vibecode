@@ -116,16 +116,30 @@ two rankings came out **opposite to each other, and the panel's winner is the la
 
 (Panel percentages above drop the duplicate opponent — see the caution below.)
 
-**Why each offline method fails:**
+**Which yardstick is wrong: the panel, not self-play.** On the one comparison the ladder has
+actually settled (v55 vs v57, both converged or near it):
 
-- **Self-play** uses opponents at our strength, but they all share our tape chassis, so any change
-  that exploits that shared behaviour scores as a gain. This produced v58.
-- **The public-agent panel** uses genuinely foreign opponents, but we beat all of them 70-97% —
-  they are far below us. Beating a weak agent by a wider margin does not predict beating a peer,
-  and **the ladder only ever pairs us with peers at 2400-2700.**
+| method | prediction | correct? |
+|---|---|---|
+| self-play (lh44 beats v55 95%, 57W-3L) | v57 > v55 | **yes** — ladder 2689 vs 2417 |
+| external panel (v55 87.1% vs lh44 80.5%) | v55 > v57 | **no** |
 
-This is the real reason the family plateaus: **we have been optimising against yardsticks that do
-not measure the target.** Fixing evaluation matters more than any further tuning.
+So `_ADV_LOOK_HI` 32 → 44 is **confirmed by the ladder at +272 Elo**. It is a real gain, not an
+artifact, and self-play predicted it correctly.
+
+The **external panel is the unreliable one**, and the reason is visible in its numbers: we beat every
+member 70-97%, so they all sit far below us. Beating a weak agent by a wider margin does not predict
+beating a peer, and the ladder only ever pairs us with peers at 2400-2700. A panel is only
+informative if its members are near our strength.
+
+> An earlier version of this section claimed the opposite — that self-play was the broken yardstick
+> and the panel was ground truth. That was wrong, and was written without checking the panel against
+> the one ladder comparison that had already resolved. **Before trusting any evaluation method here,
+> test it against a ladder result you already have.**
+
+The still-open question is v58 (route 124): self-play says it beats lh44 78-85%, the panel says it
+does not, and the ladder has not ruled — v58 was at 2512 with drift +5.6 and still climbing at
+06:12Z. **Let it converge; that is the answer.**
 
 > **Caution on the panel: check for duplicate opponents.** `auto-top1` and `aurax7-v7` return
 > *identical* records for every build (29W-1L/29W-1L for v55; 21W-9L/21W-9L for v58), differing by
