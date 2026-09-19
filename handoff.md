@@ -17,9 +17,12 @@ ladder's own ratings are not directly comparable either. Start at 3.0.
 | v55 | 56334083 | gate 0.82 + LOOK_HI=36 + day-28 sweep | 2417 — 111 games, 93.7% W |
 | v57 | 56343311 | v55 + `_ADV_LOOK_HI=44` | **2716** — 93 games, 77.4% W (highest rating) |
 | v58 | 56347520 | v57 + non-yarn route table → constant 124 | 2579 — 70 games, 74.3% W |
-| v59 | 56351569 | v57 + yarn branch → route 7 | 2424 — 59 games, 81.4% W |
-| v60 | 56353015 | v57 + `_ADV_SUBTRACT_DEBTS=True` | 2546 — 39 games, 84.6% W |
-| v61 | 56356463 | **CONTROL — byte-identical to v57** | submitted 11:00Z 19 Sep |
+| v59 | 56351569 | v57 + yarn branch → route 7 | 2442 — 62 games, 82.3% W |
+| v60 | 56353015 | v57 + `_ADV_SUBTRACT_DEBTS=True` | 2621 — 58 games, 79.3% W |
+| v61 | 56356463 | **CONTROL — byte-identical to v57** | 1740 — 13 games, climbing |
+
+Last sampled 11:37Z. **Compare these at equal game counts, not as they stand** — see 3.0b, where
+v60 and v57 turn out to be level.
 
 **v61 is the most useful submission of the day.** It is the same file as v57 (hash-verified), so the
 gap it ends up at from v57 *is the noise floor* for comparing any two of our submissions. Read it
@@ -45,10 +48,14 @@ the opposite reason to the one I first gave: the rating is stuck, not the agent.
 
 ### The prediction I made, and how it went
 
-Before their results were known I predicted v60 (market-behaviour change) would beat v57 and v59
-(tape-selection change) would not. v59 landed below v57, v60 also landed below v57. So the
-prediction was half right, and section 3.0 explains why neither half is worth much: the comparison
-was never sound.
+Before their results were known I predicted v60 (a market-behaviour change) would edge v57, and v59
+(a tape-selection change) would not. Judged on raw ratings it looked half wrong, because v60 was
+still young. **Judged at equal game counts — the only sound comparison — both halves held:**
+v60 2621 (58 games) vs v57 2611 (54); v59 2442 (62) vs v57 2611 (54).
+
+That is mild support for the class rule in 3.1, not proof. v60's +10 is well inside noise, and the
+v61 control will say whether v59's −169 is outside it. Do not upgrade the rule from hypothesis until
+v61 gives a noise floor.
 
 ---
 
