@@ -285,6 +285,12 @@ The reason it was missed for so long: the original hand sweep tried only 28 / 32
   It is *not* that moving a hand desynchronises — the gaps are too short to go anywhere.
 - **Idle-hand replanting** — `rp_plants: 0`. The layer only sows the tile a hand already stands on,
   and unlocked land is elsewhere on the board.
+- **`_ADV_LOOK` (base 16) and `_ADV_FROM` (144) are closed** — the last two unswept constants in the
+  advance-sell layer. `_ADV_LOOK` 20/24/32/44 → 62%/44%/44%/42% with margins of **+8 to +18 coins**.
+  `_ADV_FROM` 96 and 120 are inert (48 ties of 50); 192 scores 80.0% but by **+2 ± 2 coins**.
+  *`af192` is a useful warning: an 80% win rate by a 2-coin margin in a 130,000-coin game is a
+  rounding artifact, not an edge.* Judge magnitude, not just win rate — the one ladder-confirmed
+  gain (LOOK_HI, +300 coins) bought +272 Elo; these are two orders of magnitude smaller.
 - **Parameter tuning is exhausted.** GATE 0.74-0.90 flat (±15 coins); GATE_WIN 16-32 flat;
   `LIQ_FROM` 660-684 **exactly inert**; BOOST 0.90-1.12 all worse (−548 at 1.12).
   The day-28 liquidation layer shipped in v55 does nothing measurable — 40 of the 41 tapes already
