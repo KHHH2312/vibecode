@@ -120,6 +120,31 @@ the commit history):**
   candidates close together and compare their trajectories over the same window.
 - Treat any single-submission Elo difference under ~300 points at unequal game counts as noise.
 
+### 3.0b The same-age comparison — the gaps mostly vanish
+
+Trajectories recorded live on 19 Sep (rating at game count). This is the sound comparison 3.0 asks
+for, and it was reconstructible from data already collected:
+
+```
+games:        ~12      ~26      ~40      ~55      ~70      ~93
+v57          —       2464     ~2580    2611     2660     2716
+v58         1811     ~2400     2526    2558     2572     —
+v59         1700ish  2217      2386    2424     —        —
+v60         —        2435     2546     —        —        —
+```
+
+**At ~40 games: v57 ~2580, v60 2546, v58 2526 — a spread of ~55 points.** At final observation the
+same three read 2716 / 2546 / 2579, a spread of ~170. Most of the apparent difference is therefore
+**age, not strength**, exactly as 3.0 predicts.
+
+v59 is the one that still looks genuinely weaker: ~195 below v57 at equal game count, and behind at
+every point on the curve.
+
+**Method to reuse:** log `(games, elo)` for every submission, not just the latest rating, and
+compare candidates at equal game counts. `watch.py` already prints both; nothing new is needed
+except recording it. Had this been done from the start, none of tonight's reversed verdicts would
+have been stated.
+
 ### 3.1 The class rule — PROPOSED, NOT ESTABLISHED (see 3.0)
 
 The evidence below is real self-play data, but the *ladder* half of it rests on the unsound
