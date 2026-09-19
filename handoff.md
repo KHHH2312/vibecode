@@ -16,10 +16,17 @@ believing measurements that were not real.
 | v55 | 56334083 | gate 0.82 + LOOK_HI=36 + day-28 sweep | **2417, CONVERGED** over 111 games |
 | v57 | 56343311 | v55 with `_ADV_LOOK_HI=44` | **2715**, 71W-20L — best confirmed |
 | v58 | 56347520 | v57 + non-yarn table replaced by constant route 124 | 2558 at 06:55Z, still climbing — **verdict pending** |
-| v59 | 56351569 | v57 + **yarn** branch → route 7 (no route-124) | submitted 07:00Z 19 Sep |
+| v59 | 56351569 | v57 + **yarn** branch → route 7 (no route-124) | 1849 at 08:05Z, climbing |
+| v60 | 56353015 | v57 + `_ADV_SUBTRACT_DEBTS=True` (no route change) | submitted 08:05Z 19 Sep |
 
-**v59 is the current best bet**: it stacks a four-grid-validated change onto v57, the only build
-the ladder has endorsed, and deliberately omits route-124 while that remains unproven.
+**v60 is the best bet of the two**, because it is a *market-behaviour* change — the class the ladder
+has confirmed transfers (LOOK_HI, +272 Elo) — while v59 is a *tape-selection* change, the class that
+cost 144 Elo. See the route-124 verdict below for why that distinction is the important one.
+
+v60's evidence: 132W-36L (78.6%) of decisive games pooled over four grids (64% / 80% / 72% / 80%),
+margin ~+20 coins. The flag makes the advance-sell layer subtract units the sale-reservation layer
+has already booked, so it stops planning to sell stock that is already committed. Expect a small
+gain; the margin is an order of magnitude below the horizon fix.
 
 Submissions: **5 per day, UTC reset 00:00Z.** On 19 Sep, v57 and v58 are spent; three remain.
 Every submission restarts at 600 Elo.
