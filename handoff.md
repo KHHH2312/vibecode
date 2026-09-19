@@ -5,7 +5,8 @@ Kaggle user `khalid000000`; credentials at `~/.kaggle/kaggle.json` — never tra
 
 **Read section 3 (Methodology) before trusting any number in this file or producing a new one.**
 Most of the wasted effort in this project came from believing measurements that did not predict the
-ladder. Section 3 says which kinds do and which do not, and how we found that out.
+ladder. Section 3 records which measurements were tried, how each one failed, and — in 3.0 — why the
+ladder's own ratings are not directly comparable either. Start at 3.0.
 
 ---
 
@@ -18,6 +19,14 @@ ladder. Section 3 says which kinds do and which do not, and how we found that ou
 | v58 | 56347520 | v57 + non-yarn route table → constant 124 | 2579 — 70 games, 74.3% W |
 | v59 | 56351569 | v57 + yarn branch → route 7 | 2424 — 59 games, 81.4% W |
 | v60 | 56353015 | v57 + `_ADV_SUBTRACT_DEBTS=True` | 2546 — 39 games, 84.6% W |
+| v61 | 56356463 | **CONTROL — byte-identical to v57** | submitted 11:00Z 19 Sep |
+
+**v61 is the most useful submission of the day.** It is the same file as v57 (hash-verified), so the
+gap it ends up at from v57 *is the noise floor* for comparing any two of our submissions. Read it
+first: if v57 and v61 land within ~50 points, the differences in this table mean something; if they
+land 200+ apart, none of tonight's ladder verdicts do, and candidates must be judged another way.
+No control like this had ever been run, which is why the noise floor was unknown and the verdicts
+were stated with more confidence than they deserved.
 
 **Do not read that column as a ranking.** All five are still winning 74-94% of their games, so none
 has converged, and the ratings differ largely by submission age under a decayed K-factor. See 3.0.
@@ -26,8 +35,8 @@ has converged, and the ratings differ largely by submission age under a decayed 
 is *not* established as the strongest build — see 3.0 for why these ratings cannot be compared
 across submissions of different ages.
 
-**Submissions: 5 per day, UTC reset 00:00Z.** On 19 Sep, four are spent (v57, v58, v59, v60); one
-remains. Each restarts at 600 Elo, climbs fast for ~40 games, then crawls once K decays.
+**Submissions: 5 per day, UTC reset 00:00Z.** All five for 19 Sep are spent (v57, v58, v59, v60,
+v61); the next five arrive at 00:00Z 20 Sep. Each restarts at 600 Elo, climbs fast for ~40 games, then crawls once K decays.
 
 **The ladder is not rate-limiting** — it serves ~16 games/hour, and v57 climbed 600 → 2550 in two
 hours. But **a submission that flattens has not hit a strength ceiling**; it has run out of
