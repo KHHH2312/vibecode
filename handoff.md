@@ -90,7 +90,45 @@ with. This has cost a real submission before.
 
 ## 3. Methodology — read this first
 
-### 3.0 READ THIS BEFORE 3.1 — ladder ratings are not comparable across submissions
+### 3.0 THE NOISE FLOOR IS ~256 ELO — measured, not estimated
+
+**v61 (56356463) is byte-identical to v57 (56343311), hash-verified, submitted 11 hours later.**
+At virtually the same point on the curve:
+
+```
+v57   29W-4L of 33 games   ->   2550
+v61   29W-5L of 34 games   ->   2294
+                                ------
+      the SAME AGENT, same wins    256 points apart
+```
+
+**Every ladder comparison made in this project is smaller than that.** Concretely:
+
+| comparison | gap | verdict |
+|---|---|---|
+| v58 (route 124) vs v57 | −137 | **inside the noise — unresolved** |
+| v59 (yarn route 7) vs v57, at equal age | −169 | **inside the noise — unresolved** |
+| v60 (`_ADV_SUBTRACT_DEBTS`) vs v57, at equal age | +10 | **inside the noise — unresolved** |
+
+So the route-124 "regression", the yarn-route "regression", and the ladder half of the class rule
+in 3.1 are **all unsupported**. The offline evidence for those changes is real; the ladder evidence
+claimed to confirm or refute it never had the resolution to do so.
+
+**Why the noise is this large:** ratings climb fast for ~40 games and then crawl once the K-factor
+decays (v60 drifted +82/game at 22 games, +2.2 at 39). The final rating is therefore set mostly by
+how the first ~40 games happen to fall, and the same agent can take very different paths.
+
+**Practical rules this establishes:**
+- **Treat any single-submission Elo difference below ~250-300 points as no evidence at all.**
+- To detect a change worth less than that, you need repeated submissions of each arm, not one each.
+  With 5 slots/day that means roughly 2 candidates × 2 runs per day, plus a control.
+- `watch.py` prints "converged" while the win rate is still 74-94%; that word is misleading. A
+  rating is at equilibrium only near a 50% win rate, which none of ours has ever reached.
+- **Always submit a duplicate of the current best alongside any candidate.** It costs one slot and
+  is the only thing that tells you whether a difference is real. Nobody had done this here, which
+  is why several confident verdicts in this file's history had to be withdrawn.
+
+### 3.0a Ladder ratings are not comparable across submissions of different ages
 
 Discovered late (10:38Z) and it undermines the verdicts below. Snapshot:
 
