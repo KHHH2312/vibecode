@@ -62,7 +62,36 @@ project (see Methodology). It was reported as a headline finding before validati
 What remains true and useful: auto-top1 is the same chassis forked earlier, so there is no secret
 architecture anywhere in the public field, and no public agent measured so far beats v58.
 
-### v58 IS A REGRESSION — the biggest lesson in this file
+### LADDER VERDICT: route-124 is a ~144 Elo REGRESSION, and why
+
+At 07:37Z both had converged:
+
+```
+v57  2716   72W-21L   drift +2.8
+v58  2572   47W-14L   drift +1.4      <- ~144 Elo BELOW v57
+```
+
+v58 lost, **despite self-play evidence that looked airtight**: 66W-2L across 30 distinct shop
+layouts, +1,459 mean, replicated on four independent grids, with a per-pair breakdown showing the
+win was not concentrated in lucky seeds. Every guard we had said ship it.
+
+**The mechanism — and the rule that follows.** Shop layout is *endogenous*: shops unlock in response
+to what gets sold. In self-play both sides run route 124, co-adapt, and generate exactly the layouts
+124 expects. The per-pair analysis could not detect this because all 31 layouts it measured were
+themselves produced by two route-124 agents. Against a ladder opponent the layouts evolve
+differently and 124 is the wrong tape.
+
+> **Self-play validates changes to HOW WE SELL, not changes to WHICH TAPE WE RUN.**
+> `_ADV_LOOK_HI` 32→44 is a market-behaviour change: self-play predicted it and the ladder
+> confirmed +272 Elo. Route-124 is a tape-selection change: self-play predicted +1,459 coins and
+> the ladder returned −144 Elo. Tape selection interacts with the opponent through the endogenous
+> shop mechanism; selling behaviour does not.
+
+**Treat any future route/tape-selection change as unvalidatable offline.** It must be tested on the
+ladder directly, at the cost of a slot and ~5 hours. This includes v59's yarn-route change, which is
+the same class of change — expect it at or below v57, not above.
+
+### v58's earlier warning signs (superseded by the verdict above, kept for the reasoning)
 
 Same three grids, same real external opponent (auto-top1):
 
