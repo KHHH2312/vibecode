@@ -16,8 +16,8 @@ ladder. Section 3 says which kinds do and which do not, and how we found that ou
 | v55 | 56334083 | gate 0.82 + LOOK_HI=36 + day-28 sweep | **2417**, converged over 111 games |
 | v57 | 56343311 | v55 + `_ADV_LOOK_HI=44` | **2716**, 72W-21L — **best confirmed** |
 | v58 | 56347520 | v57 + non-yarn route table → constant 124 | **2579**, converged — **a regression** |
-| v59 | 56351569 | v57 + yarn branch → route 7 | 2217 at 08:38Z, climbing |
-| v60 | 56353015 | v57 + `_ADV_SUBTRACT_DEBTS=True` | 1243 at 08:38Z, climbing |
+| v59 | 56351569 | v57 + yarn branch → route 7 | **2386**, converged — **330 below v57** |
+| v60 | 56353015 | v57 + `_ADV_SUBTRACT_DEBTS=True` | 2435 at 09:37Z, 22W-0L, climbing |
 
 **v57 is the best confirmed build.** The leaderboard takes your best submission, so the weaker ones
 cost nothing but a daily slot.
@@ -81,7 +81,12 @@ with. This has cost a real submission before.
 | change | class | self-play said | ladder said |
 |---|---|---|---|
 | `_ADV_LOOK_HI` 32→44 | market behaviour | 94-100% on 4 grids, +300 coins | **+272 Elo — confirmed** |
-| route table → constant 124 | tape selection | 66W-2L over 30 layouts, +1459 coins | **−144 Elo — regression** |
+| route table → constant 124 (v58) | tape selection | 66W-2L over 30 layouts, +1459 coins | **−137 Elo — regression** |
+| yarn branch → route 7 (v59) | tape selection | 73.9% of decisive games, 4 grids | **−330 Elo — regression** |
+
+**Two for two, and the v59 prediction was made in advance** — written into this file before its
+result was known, precisely so the rule could fail visibly if it was wrong. Both tape-selection
+changes had good multi-grid self-play evidence and both lost on the ladder.
 
 **Why.** Shop layout is *endogenous*: shops unlock in response to what gets sold. In self-play both
 sides run the same tape, co-adapt, and generate exactly the layouts that tape expects. A per-pair
