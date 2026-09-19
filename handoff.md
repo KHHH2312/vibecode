@@ -13,14 +13,18 @@ ladder. Section 3 says which kinds do and which do not, and how we found that ou
 
 | build | submission | change from parent | ladder |
 |---|---|---|---|
-| v55 | 56334083 | gate 0.82 + LOOK_HI=36 + day-28 sweep | **2417**, converged over 111 games |
-| v57 | 56343311 | v55 + `_ADV_LOOK_HI=44` | **2716**, 72W-21L — **best confirmed** |
-| v58 | 56347520 | v57 + non-yarn route table → constant 124 | **2579**, converged — **a regression** |
-| v59 | 56351569 | v57 + yarn branch → route 7 | **2386**, converged — **330 below v57** |
-| v60 | 56353015 | v57 + `_ADV_SUBTRACT_DEBTS=True` | 2435 at 09:37Z, 22W-0L, climbing |
+| v55 | 56334083 | gate 0.82 + LOOK_HI=36 + day-28 sweep | 2417 — 111 games, 93.7% W |
+| v57 | 56343311 | v55 + `_ADV_LOOK_HI=44` | **2716** — 93 games, 77.4% W (highest rating) |
+| v58 | 56347520 | v57 + non-yarn route table → constant 124 | 2579 — 70 games, 74.3% W |
+| v59 | 56351569 | v57 + yarn branch → route 7 | 2424 — 59 games, 81.4% W |
+| v60 | 56353015 | v57 + `_ADV_SUBTRACT_DEBTS=True` | 2546 — 39 games, 84.6% W |
 
-**v57 is the best confirmed build.** The leaderboard takes your best submission, so the weaker ones
-cost nothing but a daily slot.
+**Do not read that column as a ranking.** All five are still winning 74-94% of their games, so none
+has converged, and the ratings differ largely by submission age under a decayed K-factor. See 3.0.
+
+**v57 holds the highest rating**, and the leaderboard takes your best submission, so keep it. But it
+is *not* established as the strongest build — see 3.0 for why these ratings cannot be compared
+across submissions of different ages.
 
 **Submissions: 5 per day, UTC reset 00:00Z.** On 19 Sep, four are spent (v57, v58, v59, v60); one
 remains. Each submission restarts at 600 Elo and needs ~80 games / ~5 hours to converge.
@@ -29,17 +33,12 @@ remains. Each submission restarts at 600 Elo and needs ~80 games / ~5 hours to c
 submission flattens, that is the agent's strength ceiling, not slow matchmaking. Never "wait and
 see" — only real strength gains move the number.
 
-### What to expect from the two builds still climbing
+### The prediction I made, and how it went
 
-They test the distinction in section 3, and the prediction was made **before** the results:
-
-- **v60** carries a market-behaviour change — the class the ladder has confirmed transfers.
-  Expect a small gain over v57 (its coin margin is only ~+20).
-- **v59** carries a tape-selection change — the class that cost 144 Elo in v58.
-  Expect it at or below v57.
-
-If v60 > v57 > v59, the distinction holds and should govern all future work. If not, section 3
-needs revisiting, and that matters more than the individual results.
+Before their results were known I predicted v60 (market-behaviour change) would beat v57 and v59
+(tape-selection change) would not. v59 landed below v57, v60 also landed below v57. So the
+prediction was half right, and section 3.0 explains why neither half is worth much: the comparison
+was never sound.
 
 ---
 
@@ -74,7 +73,47 @@ with. This has cost a real submission before.
 
 ## 3. Methodology — read this first
 
-### 3.1 The class rule (the most valuable thing learned)
+### 3.0 READ THIS BEFORE 3.1 — ladder ratings are not comparable across submissions
+
+Discovered late (10:38Z) and it undermines the verdicts below. Snapshot:
+
+```
+            games   win rate   Elo    drift
+v55  111     93.7%   2417     +2.2
+v57   93     77.4%   2716     +2.8
+v58   70     74.3%   2579     +1.3
+v59   59     81.4%   2424     +1.7
+v60   39     84.6%   2546     +2.2
+```
+
+**Every submission is winning 74-94% of its games.** A rating is at equilibrium when the win rate is
+50%, so **none of these has converged** and every rating is a *lower bound* on true strength.
+
+They stop moving because of **K-factor decay, not a strength ceiling.** v60 drifted +82/game at 22
+games and +2.2/game at 39. Once K decays, even a 93.7% win rate moves v55 by only +2.2/game. **The
+final rating is therefore set largely by how the first ~40 games happened to go**, which is high
+variance — and `watch.py` will print "converged" long before the agent is actually at equilibrium.
+
+**What this invalidates (stated plainly, because these claims appear elsewhere in this file and in
+the commit history):**
+- "v58 is a −137 Elo regression", "v59 is −330", "v60 failed" — **not established.** Those gaps are
+  consistent with early-game luck under a decayed K, and all three were still drifting upward.
+- "v57's 2716 is this family's ceiling" — **wrong.** That is where K ran out, not where strength ran
+  out.
+- "The ladder confirmed v57 > v55, so self-play beats the external panel" — **weakened.** v55 wins
+  93.7% of its games to v57's 77.4%; its lower rating may simply be a worse early run.
+
+**How to compare builds honestly from here:**
+- Win rate is age-independent but confounded by opponent strength (a lower-rated agent draws weaker
+  opponents), so it is not a clean ranking either.
+- The only sound comparison is **same-age**: compare ratings at equal game counts, or submit
+  candidates close together and compare their trajectories over the same window.
+- Treat any single-submission Elo difference under ~300 points at unequal game counts as noise.
+
+### 3.1 The class rule — PROPOSED, NOT ESTABLISHED (see 3.0)
+
+The evidence below is real self-play data, but the *ladder* half of it rests on the unsound
+comparisons described in 3.0. Keep the rule as a hypothesis worth testing properly, not a finding.
 
 > **Self-play validates changes to HOW WE SELL. It does not validate changes to WHICH TAPE WE RUN.**
 
@@ -84,9 +123,15 @@ with. This has cost a real submission before.
 | route table → constant 124 (v58) | tape selection | 66W-2L over 30 layouts, +1459 coins | **−137 Elo — regression** |
 | yarn branch → route 7 (v59) | tape selection | 73.9% of decisive games, 4 grids | **−330 Elo — regression** |
 
-**Two for two, and the v59 prediction was made in advance** — written into this file before its
-result was known, precisely so the rule could fail visibly if it was wrong. Both tape-selection
-changes had good multi-grid self-play evidence and both lost on the ladder.
+The v59 prediction was made in advance, written into this file before its result was known. It
+appeared to come true — but per 3.0 those ladder numbers compare submissions of different ages under
+a decayed K, so the apparent confirmation does not carry the weight I first gave it. **v60, a
+market-behaviour change that the rule predicted would beat v57, also landed below it** (2546 vs
+2716) — which the rule does not explain and which 3.0 does.
+
+Net: the rule is unproven in both directions. Testing it properly means submitting a
+tape-selection and a market-behaviour candidate **at the same time** and comparing their
+trajectories over the same window.
 
 **Why.** Shop layout is *endogenous*: shops unlock in response to what gets sold. In self-play both
 sides run the same tape, co-adapt, and generate exactly the layouts that tape expects. A per-pair
