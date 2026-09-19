@@ -102,7 +102,45 @@ Strength of evidence, stated honestly:
 - **v55 > v56 > lh44 is suggestive but NOT statistically significant.** 39W-1L vs 36W-4L is a
   three-game difference over 40 games. Do not act on that ordering without more evidence.
 
-### The real infrastructure problem
+### THE CENTRAL FINDING: no offline evaluation we have predicts the ladder
+
+After building the external panel (`extpanel.sh`, 8 non-lineage agents, 240 games per build), the
+two rankings came out **opposite to each other, and the panel's winner is the ladder's loser.**
+
+| build | external panel | ladder (ground truth) |
+|---|---|---|
+| v55 | **87.1% — best** | **2417, CONVERGED over 111 games — worst** |
+| v56 | 81.4% | not submitted |
+| lh44 / v57 | 80.5% | **2689, 65W-20L, drift +1.0 — best** |
+| v58 | 82.4% | 2512, 32W-5L, drift +5.6, still climbing |
+
+(Panel percentages above drop the duplicate opponent — see the caution below.)
+
+**Why each offline method fails:**
+
+- **Self-play** uses opponents at our strength, but they all share our tape chassis, so any change
+  that exploits that shared behaviour scores as a gain. This produced v58.
+- **The public-agent panel** uses genuinely foreign opponents, but we beat all of them 70-97% —
+  they are far below us. Beating a weak agent by a wider margin does not predict beating a peer,
+  and **the ladder only ever pairs us with peers at 2400-2700.**
+
+This is the real reason the family plateaus: **we have been optimising against yardsticks that do
+not measure the target.** Fixing evaluation matters more than any further tuning.
+
+> **Caution on the panel: check for duplicate opponents.** `auto-top1` and `aurax7-v7` return
+> *identical* records for every build (29W-1L/29W-1L for v55; 21W-9L/21W-9L for v58), differing by
+> ~3 coins in mean — they are near-duplicates and the panel double-counts them. An earlier claim
+> here that "v58 is a clear regression" rested on that one opponent counted twice. With duplicates
+> removed v58 is **not** clearly below lh44. Several other pairs are exact duplicates too
+> (ahmedberatozer-v45 = aurax7-v6 = reyhanksatria at +1193; anhadmahajan06 = foysalemonshanto at
+> +1739). Deduplicate before totalling anything.
+
+**What this means for spending submissions.** The only trustworthy signal is the ladder itself, and
+it costs one slot plus ~5 hours per measurement. So slots should be spent on hypotheses that are
+*qualitatively different*, not on micro-variants that offline testing cannot rank anyway. Do not
+submit v55: it is converged at 2417 and is the weakest of the three despite topping the panel.
+
+### The infrastructure problem underneath it
 
 We have almost no discriminating opponents. **Only 23 of the 49 extracted agents even load** — the
 other 26 each return a fake 0W-30L that reads like a crushing win. Of the three externals tried,
