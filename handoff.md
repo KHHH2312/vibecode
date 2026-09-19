@@ -58,9 +58,34 @@ project (see Methodology). It was reported as a headline finding before validati
 What remains true and useful: auto-top1 is the same chassis forked earlier, so there is no secret
 architecture anywhere in the public field, and no public agent measured so far beats v58.
 
-**Still open:** v58's panel regressions against `b48_open25` (100% → 53.3%) and `aurax7-v7`
-(100% → 73.3%) mean route-124 may help in self-play while hurting against diverse real opponents.
-The clean test is v57/lh44 vs auto-top1 on the same three grids, compared with v58's scores above.
+### v58 IS A REGRESSION — the biggest lesson in this file
+
+Same three grids, same real external opponent (auto-top1):
+
+| grid | v57 / lh44 | v58 |
+|---|---|---|
+| 8100000/4441 | **98%** (+939 ± 141) | 42% |
+| 3300000/7727 | **96%** (+1816 ± 344) | 76% |
+| 1900000/5113 | **98%** (+1397 ± 277) | 58% |
+
+**v57 crushes a real opponent; v58 barely holds it** — even though v58 beats v57 78-85% head-to-head.
+
+The cause: route-124 was validated against our own lineage, and every agent in that lineage shares
+the same tape behaviour. Forcing a single route beats *ourselves* while losing badly to an opponent
+that plays differently. This is overfitting to self-play, and it was submitted (`56347520`).
+The warning sign was visible and dismissed: v58's panel regressions against `b48_open25`
+(100% → 53.3%) and `aurax7-v7` (100% → 73.3%) were exactly this effect, on the only two genuinely
+foreign agents in the panel.
+
+**Rule this establishes, and it supersedes the three-grid rule alone:**
+> Three independent grids are not enough if all of them are self-play. A candidate must also be
+> validated against **external agents that are not from our lineage** before it is submitted.
+> Head-to-head superiority over the previous champion is *not* evidence of ladder strength.
+
+This casts doubt on every gain validated the same way, including `_ADV_LOOK_HI=44`. That
+re-validation (v55 / v56 / lh44 / v58 against auto-top1, salemali7-2900 and thomastschinkel) is the
+single most valuable thing to finish. If LOOK_HI=44 also fails externally, the correct live build
+may be v55 or v56 rather than v57.
 
 ---
 
