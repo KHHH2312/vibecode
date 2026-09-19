@@ -27,12 +27,28 @@ Do not "wait and see" — only real strength gains move the number.
 ### The most important open lead
 
 `agents/xuanzhang001__kaggriculture-auto-top1` **beat v58**: 12W-18L, 40.0%, −677 ± 306 over 30 games
-(grid 4700000/6229). It is a real, loading agent — 350 KB, entry point `agent`, and critically
-**it contains no route tapes at all** (0 tape entries, 10 functions, 71 branches). It is a
-state-driven policy, which is the opposite of our architecture.
+(grid 4700000/6229). It is a real, loading agent, 350 KB, entry point `agent`.
 
-This was being cross-validated on three more grids when this file was written. If it holds, it is
-the strongest lead in the project, because it suggests the tape architecture itself is the ceiling.
+**What it is** (verified by decoding, not grepping): it embeds a `_PARENT_SRC` bytes literal holding
+Ahmed Berat Ozer's V43 — 321,555 characters containing `_ROUTES`, `_R108_SHOP_ROUTES`, `_v219`,
+`_R37` and 81 tape entries. It is **the same tape chassis we use**, forked earlier (V43, where ours
+descends through V51), wrapped in its own layers: a step-0 wheat round trip, sale-reservation
+horizon widened to 24 turns, market front-loading, and a two-turn sale advance of pure cash
+products. It does **not** contain `_ADV_LOOK_HI`, `_ADV_LOOK` or `_ADV_GATE` — it never received our
+advance-sell, gate or boost layers.
+
+> **Caution, and a worked example of how to get this wrong.** I first reported this agent as having
+> "no route tapes — a state-driven policy, the opposite of our architecture." That was false. A
+> plain text search for tape entries returns 0 because the tapes live inside a `b'...'` literal.
+> Decode embedded source with `ast` before concluding anything about it.
+
+So there is no architectural secret: an *older* base with *different* wrappers beats our heavily
+tuned one. That points at their wrappers, or at a weakness in ours.
+
+**Immediate follow-up this raises:** v58's panel showed regressions against `b48_open25`
+(100% → 53.3%) and `aurax7-v7` (100% → 73.3%). If v58 is weaker than v57 against real, diverse
+opponents, the route-124 change may be a regression that was submitted on self-play evidence.
+Test `auto-top1` against **v57/lh44** as well as v58 before drawing conclusions.
 
 ---
 
