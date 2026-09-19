@@ -1,113 +1,299 @@
-# BIOHUB CELL-TRACKING KAGGLE CAMPAIGN — HANDOFF
-_Last updated: 2026-07-22 (UTC). Workspace: `C:\Users\Khalid\Desktop\New_folder\vibecode`. Supersedes all prior handoffs._
+# Kaggriculture — handoff
 
-## 0. THE GOAL (verbatim intent)
-- Compete in Kaggle comp `biohub-cell-tracking-during-development`, account `khalid000000`.
-- Score as high as possible **WITHOUT the exploit** (hub/ladder metric hack is FORBIDDEN — see §1).
-- User's cadence: **start at 0.909 at midnight UTC, then add ≥ +0.005 every day** ("0.05" in the goal string = +0.005/day). Next notebooks must clear **0.914**.
-- North star 0.985 honest. **HONEST ASSESSMENT: 0.985 almost certainly NOT reachable** with current public assets — clean public field tops ~0.909; every 0.985+ LB score is the exploit. Incremental daily gains are the realistic plan.
+Written 2026-09-19. Competition ends ~2026-09-28. Goal: 3100+ Elo.
+Kaggle user `khalid000000`. Credentials at `~/.kaggle/kaggle.json` — never transmit them anywhere.
 
-## 1. HARD RULES (non-negotiable)
-1. **No exploit ever.** Grep and reject sentinels: `hub_id`, `FORKS=`, nodes at `(-10000,-10000,-10000)`, `MAX_COMPONENTS`, `DUAL_LADDERS`, `divider_id`, negative-time nodes.
-2. **One submit per notebook, EVER.** (We wasted 3 slots re-submitting the same notebook — never again.)
-3. **Max 5 submits/day**, reset 00:00 UTC.
-4. **Never submit unless confident it scores well** (measured locally first, or a faithful reproduction of a known-good public score).
-5. Only submit notebooks producing **exactly the 4 test stems**: `44b6_0113de3b, 44b6_0b24845f, 6bba_05b6850b, 6bba_05db0fb1`.
-6. **Guards every submit**: 4 stems exact, 0 dangling edges, 0 exploit sentinels, 0 nodes at -10000.
-7. **Training exploit boundary**: the 4 test stems have GT `.geff` in the train mount. Training on them = memorizing answers = FORBIDDEN. Train only on train stems excluding the 4 test + 8 val stems; validate on held-out train stems (legit CV).
-8. Submit path ONLY: `python -m kaggle competitions submit biohub-cell-tracking-during-development -k khalid000000/<slug> -v <version> -f submission.csv -m "<msg>"`
-9. T4×2 (`machine_shape: NvidiaTeslaT4`), internet off for submissions. Kernel push+run is FREE; only `competitions submit` costs a slot.
-
-## 2. THE METRIC (drives every decision)
-`score = adj_edge_jaccard + 0.1 * division_jaccard`
-- `adj_edge_jaccard = max(0, edge_jaccard * (1 - 0.1*(N_pred - N_true)/N_true))`, per dataset.
-- division_jaccard pooled across datasets before Jaccard. Node match by centroid dist ≤7µm; scale z=1.625, y=x=0.40625 µm/voxel.
-- **Implication:** edge_jaccard already ~0.943 locally (nearly tapped). The untapped term is **0.1 × division_jaccard** — divisions are the honest lever.
-
-## 3. VERIFIED SCORES (live Kaggle CLI)
-- **Best honest COMPLETE = 0.903** (refs 54748675 / 54704551 / 54704922).
-- Banked floor 0.902 (54862719).
-- **bh-clean-909 = faithful repro of yusuketogashi clean public 0.909. NEVER SUBMITTED YET.** Guard-safe: 236185 rows, 4 stems, 0 dangling, 0 sentinels. Expected ~0.909 = first gain above 0.903. **Cron queued to submit at 00:05 UTC** (see §7).
-- Exploit-era (FORBIDDEN, never revive): 0.970 / 0.955 / 0.954 / 0.952.
-
-## 4. LEVERS — DEAD vs OPEN
-**DEAD (do not revisit):**
-- Public weight-swaps: 350ep → 0.901 LB, v34 alt-lineage → 0.901 LB. Both REGRESSED vs 50ep bank. Family exhausted.
-- ILP `division_weight`: bank-proxy peaks div_w=0.70 (local 0.9693) but does NOT transfer — on real clean909 pipeline, 1.0→0.60 moved output by ONE division (309 vs 308). clean909's safe-division PP re-adds divisions after ILP, overriding the ILP weight. div060/070/075 ≈ 0.909.
-- Swap-gate loosening: tapped out (decimal-place).
-
-**OPEN / PROMISING:**
-- **Safe-division PP gating params** = the live division lever. PURELY GEOMETRIC in clean909 (deepcenter veto OFF), gated only by distance caps:
-  - `BIOHUB_SAFE_DIV_MAX_UM=4.66`, `BIOHUB_SAFE_DIV_SISTER_MAX_UM=8.5`, `BIOHUB_SAFE_DIV_EXISTING_CHILD_MAX_UM=7.65`
-  - `BIOHUB_SAFE_DIV_FRAME_FRAC_CAP=0.0076`, `BIOHUB_SAFE_DIV_GLOBAL_FRAC_CAP=0.00375`
-  Geometry-only ⇒ can be swept FULLY LOCALLY (no images) on cached candidate graphs + GT. **Most promising path to +0.005.**
-- **Fine-tune** (only theoretical 0.985-magnitude lever) — but historically regresses; see §6.
-
-## 5. THE MEASUREMENT UNLOCK (crown jewel)
-Compute the **EXACT competition metric locally** on train GT, FREE, no Kaggle:
-- `biohub_tracking.metrics` (evaluate/node_recall/per_sample_metrics/summarise) — source at `out_clean909/tracking_repo/src/biohub_tracking/`.
-- Local ILP: tracksdata 0.1.0rc6 + ilpy 0.6.0 + pyscipopt (SCIP, ~20-26s/solve; Gurobi absent).
-- **Validated EXACT**: local div_w=1.05 → 0.9440 / edgeJ 0.9434 — identical to paid Kaggle run.
-- Harness: `sweep_worker.py` (one ILP solve/subprocess, fixes OOM), `sweep_driver.py`.
-
-**Problem last session solved:** original 8 val stems have only 5 GT divisions → division signal too weak to tune safe-div lever.
-**Fix (DONE):** `bh-divcensus` kernel counted divisions across 195 train stems (**148 total; 86 stems have >0**) and exported GT for the **24 most division-rich stems** → `out_divcensus/gt_divrich.zip` (NEEDS UNZIP). Top: 6bba_48816121(5), 6bba_09961292(4), 6bba_afb141ff(4), 6bba_cdcfe533(4), 6bba_debd7bfa(4), 6bba_df673a83(4), then several with 3.
-
-## 6. FINE-TUNE (Task #1) — DESIGN NOTES
-- Script: `out_clean909/tracking_repo/scripts/train_unet_transformer.py`. Args: `--data-dir --splits --unet-weights --epochs --lr --batch-size --single-gpu/--data-parallel --det-loss-weight --det-neg-weight`.
-- **Leak-free split DONE**: `finetune_split.json` — train=187 (199 − 4 test − 8 val), test=8 val. Verified disjoint. Also `all_stems.json`.
-- **TWO TRAPS that likely caused prior regressions:**
-  1. `--unet-weights X` loads X into ONLY the UNet submodule (strict=False) → **silently drops the transformer edge head** (fresh transformer each run). Full checkpoint `weights/unet_transformer/split_0/edge_predictor_best.pth` is the FULL state_dict. PATCH the script to load the full model state before the loop to truly continue training.
-  2. Checkpoint selection uses `test_acc*test_recall` proxy (line ~1165), NOT the comp metric. Fix: save checkpoints periodically, run full inference+ILP+PP on val per checkpoint, local_score, pick by REAL metric.
-- LOW odds of beating 0.909; do NOT submit a fine-tune output unless it beats 0.909 locally first.
-
-## 7. QUEUED / IN FLIGHT
-- **Cron `808a80c4`** (durable, `.claude/scheduled_tasks.json`): fires 00:05 UTC (01:05 local, UTC+1). Re-verifies slots+guards+that bh-clean-909 was never submitted, then submits `bh-clean-909 v1` ONCE → banks 0.909.
-- Kaggle kernels (all COMPLETE): `bh-clean-909` (0.909 repro, submission ready), `bh-clean909-div060` (div lever test, dead), `bh-gtexport`, `bh-val-baseline` (local baseline 0.9440), `bh-stemlist` (199 stems), `bh-divcensus` v2 (census+GT export), `bh-v913-swapgate`.
-- Local artifacts: `dsout/cand_graphs/` (8 cached pre-ILP graphs w/ edge_prob), `gt_local/` (8 val GT), `out_divcensus/gt_divrich.zip` (24 div-rich GT), `out_clean909/submission.csv` (the 0.909), `sweep_out/` (full div_w sweep).
-
-## 8. PLAN TO HIT 0.914 (next concrete steps)
-1. Let cron bank 0.909 at 00:05 UTC; verify LB score.
-2. Unzip `out_divcensus/gt_divrich.zip` → 24 div-rich GT stems.
-3. Run a free GPU kernel (like `bh-val-baseline`) to produce candidate graphs for the 24 div-rich stems.
-4. Reproduce clean909's `add_safe_divisions_postlink` geometric gating in a standalone local script; sweep `SAFE_DIV_MAX_UM / SISTER_MAX_UM / FRAME_FRAC_CAP / GLOBAL_FRAC_CAP` to maximize division_jaccard WITHOUT hurting edge_jaccard, scored with `biohub_tracking.metrics`.
-5. If a param set beats clean909 division recall locally by enough to clear +0.005, bake those env vars into a NEW notebook (e.g. `bh-clean909-safediv-v2`), guard, submit ONCE at next reset.
-6. In parallel (free): proper full-checkpoint-warm-start fine-tune with real-metric checkpoint selection. Submit only if it beats 0.909 locally.
-
-## 9. GOTCHAS
-- geff edge ids = zarr v3, zstd uint64 `[E,2]` at `<stem>.geff/edges/ids/c/0/0`. Local machine has NO zstd/zarr; decode on Kaggle with `numcodecs.Zstd().decode()` (how divcensus reads them).
-- `io.open_dataset` imports torch → bypass locally: load `.geff` directly with `td.graph.IndexedRXGraph.from_geff`, parse scale from `zarr.json` multiscales.
-- Solver output (GraphView) must be `.detach()`'d before `evaluate` (`.copy()` unsupported locally).
-- `PYTHONIOENCODING=utf-8` when printing notebook content (Windows cp1252).
-- Foreground `sleep` polls hit a 2-min Bash cap; use background watchers.
-- `kaggle kernels push` sometimes throws transient "Expecting value: line 1 column 1" — just retry.
-
-## 10. FILE INDEX
-- `campaign_scores.md` — full verified-scores log + all sweep findings.
-- `finetune_split.json`, `all_stems.json` — leak-free training split.
-- `sweep_worker.py`, `sweep_driver.py` — local ILP metric harness.
-- `kernel_clean909/` — the 0.909 notebook. `kernel_divcensus/` — census + GT export.
-- `out_divcensus/divcensus.json` — per-stem division counts (195 stems).
-- `out_divcensus/gt_divrich.zip` — GT for 24 div-rich stems (unzip me).
-- Memory (persists across sessions): `C:\Users\Khalid\.claude\projects\C--Users-Khalid-Desktop-New-folder\memory\` — `biohub-verified-scores-2026-07-21.md`, `biohub-finetune-plan.md`.
+**Read the "Methodology" section before trusting any number in this file or producing a new one.**
+It is the single most important thing here. Most of the wasted effort in this project came from
+believing measurements that were not real.
 
 ---
 
-## POST-RESCORE UPDATE (2026-07-24)
+## 1. Where things stand
 
-### 0.911 claim on Downloads notebooks (Claude)
-- Notebooks: `Downloads/bhdsc350epcv.ipynb` = kernel `bh-dsc-350ep-cv`; `bhdsem2div.ipynb` = m2div variant E.
-- **Fixed-8 CV is REAL:** score **0.88163**, delta_vs_124 **+0.00241**, divJ **0.0** (file `out_dsc/127_lite_cv_status.json`).
-- **"0.911 minimum LB" is NOT a guarantee** — CV→LB extrapolation (0.879 CV ↔ 0.908 LB ⇒ +0.029). Expected LB ≈ **0.910–0.911 if transfer holds**.
-- Submitted: ref **54939707** (PENDING). Best prior COMPLETE honest: **0.909**.
+| build | submission | what it is | result |
+|---|---|---|---|
+| v55 | 56334083 | gate 0.82 + boost LOOK_HI=36 + day-28 sweep | ~2400, climbed slowly |
+| v57 | 56343311 | v55 with `_ADV_LOOK_HI=44` | **flattened at 2611**, drift +1.5/game |
+| v58 | 56347520 | v57 with the route table replaced by constant route 124 | live, submitted 03:52Z 19 Sep |
 
-### Path to ~0.930 (honest)
-- Leaders post-rescore ≈ **0.929** — honest board; exploit dead.
-- Division term still 0 on our best CV → m2div graft is the large honest lever (`bh-dse-m2div-v2` pushed RUNNING).
-- Do not re-enable hub/ladder.
+Submissions: **5 per day, UTC reset 00:00Z.** On 19 Sep, v57 and v58 are spent; three remain.
+Every submission restarts at 600 Elo.
 
-### Ops
+**The ladder is not the bottleneck.** v57 climbed 600 → 2550 in two hours (~16 games/hour).
+When a submission flattens, that is the agent's strength ceiling, not slow matchmaking.
+Do not "wait and see" — only real strength gains move the number.
+
+### The most important open lead
+
+`agents/xuanzhang001__kaggriculture-auto-top1` **beat v58**: 12W-18L, 40.0%, −677 ± 306 over 30 games
+(grid 4700000/6229). It is a real, loading agent — 350 KB, entry point `agent`, and critically
+**it contains no route tapes at all** (0 tape entries, 10 functions, 71 branches). It is a
+state-driven policy, which is the opposite of our architecture.
+
+This was being cross-validated on three more grids when this file was written. If it holds, it is
+the strongest lead in the project, because it suggests the tape architecture itself is the ceiling.
+
+---
+
+## 2. Architecture — what our agent actually is
+
+Ours is **not** a heuristic if/else bot. It is a **tape replayer**:
+
+- `_ROUTES` holds 41 pre-recorded 719-step action tapes (only **38 are distinct** —
+  `101==119`, `105==125`, `109==127`).
+- A router picks one on **day 6 (step 144)** from the first two shops that unlock, via two
+  hand-built lookup tables, then hard-switches to route 2 at step 648.
+- Nine reactive layers wrap the tape: weed repair, safety, market reordering, the advance-sell
+  layer, a crash gate, a spike boost, a day-28 liquidation sweep, and closure planning.
+
+**The central constraint: a tape cannot react.** Every structural idea that failed this project
+failed on this. You cannot change what a tape does without desynchronising every later step that
+depends on the farm state the earlier steps built.
+
+`kaggle_environments` runs **the last callable in the module** — ours is `_y_agent_shopherd`.
+A wrapper appended after the chain bypasses all nine layers and scores exactly the 3,000 it
+started with. This has cost a real submission before.
+
+---
+
+## 3. Methodology — read this first
+
+### Single-grid results lie. This was proved three separate times.
+
+1. **rt115** measured 62.0% / +1286 on the tuning grid. On three independent grids it was
+   44% / 54% / 44% — a coin flip. Pure noise.
+2. **"LOOK_HI=36 is the peak"** was recorded everywhere as established fact. It was a measurement
+   fault. 44 beats 36 on four grids.
+3. **Ranking against a common weaker baseline is invalid.** Comparing 35/36/37/38 each against v55
+   and picking the best cannot rank them against *each other*. When run head-to-head, the ordering
+   was completely different. This cost several hours.
+
+**Rule: never submit on one grid. Require 3+ independent grids.**
+Grids in use: `4700000/6229`, `8100000/4441`, `3300000/7727`, `1900000/5113`, `1200000/9011`.
+
+### A non-loading agent looks like a crushing win
+
+Many public agents in `agents/` are multi-file and fail to import when run as a single file.
+A broken agent produces **0W-30L with mean ≈ −190,627**. That is the signature of *nothing running*,
+not of a strong opponent. Always check loadability first:
+
+```python
+src = open(path + "/main.py").read(); ns = {}
+exec(compile(src, path, "exec"), ns)      # raises if the agent is broken
+fn = [v for v in ns.values() if callable(v)][-1]   # the engine uses the LAST callable
 ```
-python -m kaggle competitions submissions -c biohub-cell-tracking-during-development
-python -m kaggle kernels status khalid000000/bh-dse-m2div-v2
+
+Known: `saitejabandaruin-...-3000` and `pilkwang-...-policy` fail to import.
+`xuanzhang001-pipe7-public-top1` crashes ("no completed games").
+`indarkarhana-...-2948-9` loads but is genuinely weak (−33,652).
+
+### Notebook titles are not evidence
+
+`ultimate-mega-ensemble-3000`, `auto-top1`, `verified-route-replay-2948-9` are self-chosen filenames.
+`pilkwang`'s "structured economic policy" turned out to be a thin wrapper over Ahmed Berat Ozer's V36
+whose own README says `"strength_status": "UNVERIFIED"` and `"submission_allowed": false`.
+Only head-to-head play counts.
+
+### Everyone shares one codebase
+
+The public agents and ours descend from a common ancestor — the same `_v219`, `_R37`, `_v233`
+internals appear in other people's notebooks. Nobody is running a secret planner. The competition is
+about *which gate you add*, and forking is the norm (Apache-2.0). **Keep all NOTICE/attribution text
+in anything shipped.** Upstream credits include ahmedberatozer, aurax7, tetsutani, thomastschinkel,
+yhay81, destbreso, prvsiyan, Dmitrii Gluzdov.
+
+---
+
+## 4. What actually won, with numbers
+
+### v58 — replacing the route table with one constant (~+1,200 coins)
+
+The day-6 router's non-yarn table `_R108_SHOP_ROUTES` has 64 entries and was fit from roughly
+**one game per shop pair** (40 seeds produce 26 distinct pairs). At that sample size it encoded
+noise as if it were knowledge. Replacing the entire table with a single route wins:
+
+| grid | score | margin |
+|---|---|---|
+| 4700000/6229 | 85.0% | +1470 ± 162 |
+| 8100000/4441 | 85.0% | +1138 ± 168 |
+| 3300000/7727 | 81.7% | +1167 ± 186 |
+| 1900000/5113 | 78.3% | +1296 ± 278 |
+
+Full sweep of all distinct routes: **rt124 best (85.0%)**; rt108 = rt122 at 70.0% / +917;
+rt107 57.5%; everything else −700 to −8200 (worst rt117, 10.0% / −8178).
+
+Tool: `mkroute.py` (`RT_NEW=` non-yarn branch, `RT_OLD=` yarn branch).
+
+**Known regression:** v58's panel is 184W-26L, but `b48_open25` drops 100% → 53.3% and
+`aurax7-v7` 100% → 73.3%. Both stay positive on coins (+887, +1421) but v58 trades reliability
+against those two openings for a bigger margin everywhere else.
+
+### v57 — the advance horizon (~+300 coins)
+
+`_ADV_LOOK_HI` 32 → 44. Wins 94-100% on four grids. Saturates around 45 (`lh48` matches `lh44`
+record-for-record on every grid, so the exact value above ~45 is irrelevant).
+
+The reason it was missed for so long: the original hand sweep tried only 28 / 32 / 40 (2.0% / 93% /
+26.0%), saw a sharp peak at 32, and never looked between 32 and 40.
+
+**Generalisable lesson: check whether a "knife-edge optimum" was ever sampled densely.**
+
+---
+
+## 5. Closed — do not retry
+
+- **`_v219` is dead code in every build ever shipped.** Its qualifier runs exactly once, on day 18,
+  and `tomato_price_ok` fails — the tomato price is never ≥ `CROP_MIN_PRICE=70`. This explains why
+  22 earlier tuning configurations were all negative: most were never running. Forced on with zero
+  hires it commits, plants nothing, and loses (107,567 vs 113,255). Diagnose with `v219probe.py`.
+- **Borrowing idle hands — dead, for a precise reason.** `tapeidle.py`: the tape commands every hand
+  until step 712-718 (only route 1 frees one, at step 504). `tapegaps.py`: **87% of idle runs are
+  ≤4 turns**. A hand needs `2×distance+1` turns to leave, work a tile and return, so it can reach
+  exactly one adjacent square; the long runs are all on day 0 before hands are hired.
+  It is *not* that moving a hand desynchronises — the gaps are too short to go anywhere.
+- **Idle-hand replanting** — `rp_plants: 0`. The layer only sows the tile a hand already stands on,
+  and unlocked land is elsewhere on the board.
+- **Parameter tuning is exhausted.** GATE 0.74-0.90 flat (±15 coins); GATE_WIN 16-32 flat;
+  `LIQ_FROM` 660-684 **exactly inert**; BOOST 0.90-1.12 all worse (−548 at 1.12).
+  The day-28 liquidation layer shipped in v55 does nothing measurable — 40 of the 41 tapes already
+  blanket-sell in the last three days.
+- **Harvested tapes** — a tape that scored 163,274 in its own game scores 76,406 when replayed
+  (prices are shared and its orders were timed against its own opponent). Switched in at day 6 on a
+  *matching* shop pair: 29,664 vs 182,400.
+- **Shop layout is endogenous** — shops unlock in response to what you sell, so the same seed gives
+  different pairs under different play. A tape library keyed on shop pairs cannot work.
+- **Tape surgery, all catastrophic** — drop geese 17.5% / −4,528; +1 goose −9,499; +1 cow
+  catastrophic; wheat→strawberry 0W-40L / −161k; wheat→melon 0W-40L / −194k.
+- Also dead: hoarding, parcel splitting, all `_OPEN_STEP0` alternatives, `_ADV_BOOK`, sell_lead off,
+  all `_RACE_HORIZON_*`, R37 horizon 6/8/12, day-27 route switch (40 of 41 routes have identical
+  last-three-day tapes), yarn-branch route override (50 ties in 60 games — nearly inert).
+
+---
+
+## 6. The structural gap
+
+Measured over 24 games of the 3125-3154 teams against 27 of ours:
+
+| | day-20 money | final money |
+|---|---|---|
+| us | **48,855** | 108,034 |
+| top | 45,754 | **113,714** |
+
+**We are ahead at day 20 and lose it all in the final two days.**
+
+Their late burst is late-maturing **tomato**: top teams hold 6 tomato tiles / 64 units; we hold
+**zero**. They leave 14.6 tiles locked to our 22.9, and have 12% idle hands to our 45%.
+Our board at day 25 is PLANT 58, PASTURE 17, LOCKED 25 — no bare tiles at all.
+
+Every attempt to close this on the tape chassis has failed (section 5). That is the argument for
+pursuing the state-driven `auto-top1` lead instead.
+
+---
+
+## 7. Engine facts
+
+720 steps (30 days × 24 turns), 10×10 board, shed capacity 100, max 10 market orders/turn,
+starting money 3000. **Reward = final cash; shed contents are worth zero at step 719.**
+
+| crop | seed | first yield | max yield | notes |
+|---|---|---|---|---|
+| WHEAT | 10 | day 2 | 6 | **animal feed — eaten daily, never liquidate** |
+| CARROT | 20 | day 2 | 4 | |
+| TOMATO | 50 | day 8 | 4 | ongoing, interval 1 |
+| STRAWBERRY | 100 | day 10 | 4 | ongoing, interval 2 |
+| MELON | 80 | day 10 | 6 | |
+
+Animals: GOOSE 300 (COOP, 4, EGG); COW 400 (PASTURE, 8, MILK); SHEEP 500 (PASTURE, 6, WOOL).
+
+FERTILIZER is spent on planting; by day 28 nothing planted can reach first yield before step 719,
+so it *is* safely liquidatable — unlike wheat.
+
+**Realised sale price, top-10 vs field** (from 618 replays): MELON +14%, STRAWBERRY +11.2%,
+MILK +7.3%, WOOL +6.4%, EGG/TOMATO/WHEAT ~0. The gap appears exactly on the high-value goods whose
+price curve is steep. Top teams sell a median 45% of held stock per order; the field sells 50%.
+**Principle: trickle, don't dump.**
+
+---
+
+## 8. Running things
+
+Everything lives in the **ephemeral** scratchpad
+`/tmp/claude-0/-home-user-vibecode/645f0ae7-25a6-5826-b984-55bb3c858d7f/scratchpad`.
+Python is `./venv/bin/python`. **Anything that must survive belongs in this repo.**
+
 ```
+ab.py <A.py> <B.py> <seeds> <base> <stride>      paired grid, both seat orders
+runsweep2.sh <A.py> <seeds> <base> <stride> DIRS...   takes DIRECTORIES
+panel2.sh <A/main.py> <seeds>                     takes a FILE
+search.py --spec s.json --out runs/n --seeds 25 --base N --stride N --sigmas 2.0 --min-score 58
+```
+
+`search.py` is coordinate descent: each value is played against the **reigning champion** (not the
+original baseline) over a paired seed grid; a winner becomes champion and the sweep restarts.
+A build identical to the old champion scoring 8% means the champion moved on — not that the harness
+broke.
+
+**Traps that have actually bitten:**
+- `panel2.sh` takes a FILE, `runsweep2.sh` takes a DIR. The wrong form silently scores a
+  nonexistent agent: 0W-30L everywhere with an identical ~−188,000 margin.
+  **Suspect this first whenever a sweep looks impossibly lopsided.**
+- The box has **4 CPUs**. Never run more than one `ab.py` at a time; use `AB_WORKERS=3`.
+- Container churn silently kills `nohup`'d jobs — use the harness's background runner.
+- Never wait on a job by grepping a pattern the waiting shell's own command line contains; it
+  matches itself and sleeps forever. Use `kill -0 <PID>`.
+
+**Patchers** (each asserts on exact source anchors and fails loudly if they are absent — that is a
+feature; do not force them onto a foreign source):
+`mkroute.py` (route override), `mkconst.py` (rewrite any module constant),
+`mkgate.py`, `mkboost.py`, `mkliq.py`, `mkv219b.py`, `mkreplant.py`.
+
+**Rebuild the v57 line:**
+```
+MK_SRC=v51/main.py GATE=0.82 GATE_WIN=24 mkgate.py X_g
+MK_SRC=X_g/main.py BOOST=1.00 LOOK_HI=44 mkboost.py X_b
+MK_SRC=X_b/main.py LIQ_FROM=672 LIQ_ITEMS=STRAWBERRY,WOOL,EGG,MILK,MELON,CARROT,TOMATO,FERTILIZER mkliq.py X
+```
+(equivalently `MK_SRC=v56/main.py mkconst.py X "_ADV_LOOK_HI=44"` — verified byte-identical).
+Then `MK_SRC=X/main.py RT_NEW=124 mkroute.py v58`.
+
+**Submit:**
+```
+build_sub.py <dir>/main.py submission_vNN.ipynb submission_vNN.tar.gz notes_vNN.md
+api.competition_submit('submission_vNN.tar.gz', msg, 'kaggriculture')
+sed -i 's/else <OLD_ID>/else <NEW_ID>/' watch.py
+```
+Always validate a full 720-step game first and confirm the last callable is the real entry point —
+a reward of exactly 3,000 means the chain was bypassed.
+
+**Diagnostics:** `watch.py` (ladder), `why.py`, `bylevel.py`, `autopsy.py`, `endgame.py`,
+`lastburst.py`, `finger.py`, `seedscan.py`, `v219probe.py`, `smoke.py` (one game + layer telemetry),
+`tapeidle.py`, `tapegaps.py`. `idx/manifest.csv` indexes the 2026-09-17 replay archive; replays at
+`https://www.kaggleusercontent.com/episodes/<id>.json`.
+
+---
+
+## 9. What I would do next
+
+1. **Finish validating `auto-top1`.** If it beats v58 on 3+ grids, it is stronger than anything we
+   have built, and it has no tapes. Read it, understand the policy, and either submit it (with
+   attribution) or port its decision logic.
+2. **Sweep the remaining public agents properly.** 49 are extracted; only ~10 have ever been played.
+   Check loadability first. There may be more than one agent stronger than ours sitting unexamined.
+3. **`_ADV_LOOK` (base 16) and `_ADV_FROM` (144)** are built as `al20 al24 al32 al44` and
+   `af96 af120 af192` and have never been swept. They are in the one layer that has produced a gain.
+4. **Do not spend more time on the tape chassis.** Sections 5 and 6 are the evidence: the remaining
+   gap is structural, and a tape cannot react to it.
+
+---
+
+## 10. Honest assessment
+
+We moved from ~2400 to a measured ceiling around 2611, and v58 should exceed that, but **nothing
+measured so far projects to 3100.** The top of the leaderboard is 3247 and the 3100 band is roughly
+the 3rd-4th position. Two real gains were found (+300 and +1,200 coins), both by finding measurement
+errors in previous work rather than by inventing new mechanisms — which is itself the clearest
+signal about where the remaining value is: **re-measure what is already believed.**
+
+The single most promising fact in this file is that a public agent with no tapes beat our best
+build. That is worth more than another week of tuning ours.
