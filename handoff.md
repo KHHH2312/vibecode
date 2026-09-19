@@ -27,11 +27,12 @@ is *not* established as the strongest build — see 3.0 for why these ratings ca
 across submissions of different ages.
 
 **Submissions: 5 per day, UTC reset 00:00Z.** On 19 Sep, four are spent (v57, v58, v59, v60); one
-remains. Each submission restarts at 600 Elo and needs ~80 games / ~5 hours to converge.
+remains. Each restarts at 600 Elo, climbs fast for ~40 games, then crawls once K decays.
 
-**The ladder is not rate-limiting.** v57 climbed 600 → 2550 in two hours (~16 games/hour). When a
-submission flattens, that is the agent's strength ceiling, not slow matchmaking. Never "wait and
-see" — only real strength gains move the number.
+**The ladder is not rate-limiting** — it serves ~16 games/hour, and v57 climbed 600 → 2550 in two
+hours. But **a submission that flattens has not hit a strength ceiling**; it has run out of
+K-factor while still winning 74-94% of its games (3.0). Waiting genuinely does not help, but for
+the opposite reason to the one I first gave: the rating is stuck, not the agent.
 
 ### The prediction I made, and how it went
 
@@ -413,35 +414,58 @@ a reward of exactly 3,000 means the chain was bypassed.
 
 ## 9. What I would do next
 
-1. **Read the ladder verdicts on v59 and v60 first** (section 1). They test the class rule, and the
-   answer determines whether offline self-play can be trusted at all going forward.
-2. **Do not spend slots on tape/route variants** unless you accept that each one costs a slot and
-   ~5 hours to evaluate. Section 3.1.
+1. **Fix the measurement before doing anything else.** Every verdict in this project rests on
+   comparisons that turned out to be unsound (3.0). Concretely: check how the five live submissions
+   compare *at equal game counts* by recording rating-vs-games rather than rating alone, and make
+   `watch.py` stop printing "converged" while the win rate is far from 50%. Without this you cannot
+   tell a real gain from a lucky first 40 games.
+2. **Exploit K-decay rather than fighting it.** Since the final rating is set largely in the first
+   ~40 games, and the ladder gives 5 submissions a day, **the same build submitted several times
+   will land on several different ratings.** That is worth knowing before concluding a change
+   helped: submit a *duplicate of the current best* alongside any candidate, as a control. Nobody
+   has done this here, and it would have prevented most of tonight's wrong conclusions cheaply.
 3. **Market-behaviour levers are exhausted** — every constant, both flags, both bounds and the item
    set in the advance-sell layer are now swept (section 5). Further tuning of this chassis is very
    unlikely to pay.
 4. **The remaining gap is structural** (section 6) and needs a mechanism a tape cannot express.
-   The honest options are: accept ~2700-2750, or move to an agent that decides from game state
-   rather than replaying a tape. The second is a rewrite, and nine days is tight but not absurd —
-   note that `auto-top1`, our nearest public rival, is the *same* chassis, so the field has not
-   solved this either.
-5. **If you want more offline signal, build a panel of peers, not of weaklings** (section 3.5). The
-   only opponents near our strength are our own recent builds, which is exactly the trap in 3.1 —
-   so this is genuinely hard, and is the deepest unsolved problem in the project.
+   The honest options are: accept ~2700, or move to an agent that decides from game state rather
+   than replaying a tape. The second is a rewrite, and nine days is tight but not absurd — note that
+   `auto-top1`, our nearest public rival, is the *same* chassis, so the field has not solved this
+   either.
+5. **Offline evaluation remains unsolved** (3.5). A panel of much weaker agents predicts nothing,
+   and the only opponents at our strength are our own builds, which is the self-play trap. This is
+   the deepest unsolved problem here and everything else depends on it.
 
 ---
 
 ## 10. Honest assessment
 
-We went from ~2400 to a confirmed 2716, and the two builds still climbing may add a little. **Nothing
-measured projects to 3100.** The leaderboard top is 3247 and the 3100 band is roughly 3rd-4th place.
+The highest rating we hold is **2716 (v57)**. The leaderboard top is 3247 and the 3100 band is
+roughly 3rd-4th place. **Nothing measured projects to 3100**, and — importantly — nothing measured
+reliably projects anything at all, for the reasons in 3.0.
 
-Two real gains were found, both by **re-measuring something already believed** rather than inventing
-a mechanism: the horizon (a "knife-edge optimum" that had never been sampled densely) and, briefly,
-the route table (a 64-entry table fit on one game per cell). One of those two turned out to be a
-regression on the ladder despite excellent offline evidence.
+Two candidate gains were found, both by **re-measuring something already believed** rather than
+inventing a mechanism: the sell horizon (a "knife-edge optimum" that had never been sampled between
+32 and 40) and the route table (64 entries fit on roughly one game per cell). The first is the only
+change with any ladder support; the second looked far stronger offline and appears to have hurt,
+though 3.0 means even that is not firmly established.
 
-The most valuable output of this session is probably not a build but section 3 — specifically that
-**self-play predicts selling changes and not tape changes**, and that a panel of much weaker
-opponents predicts nothing at all. Both were established by checking offline claims against ladder
-results, which is cheap to do and was not being done.
+**The real output of this session is negative, and it is worth more than a build.** Three
+evaluation methods were tried and none of them is trustworthy as used:
+
+- *self-play* — opponents at our strength, but they share our tape chassis, so changes that exploit
+  the shared behaviour score as gains;
+- *a panel of public agents* — genuinely foreign, but we beat all of them 70-97%, so it cannot rank
+  us and in fact ranked our weakest build first;
+- *the ladder itself* — the only ground truth, but its ratings are not comparable across
+  submissions of different ages, because K decays before an agent reaches equilibrium.
+
+Each of those was discovered by checking a claim against evidence that already existed. That is
+cheap and was not being done. Anyone continuing this should assume the same is true of whatever they
+currently believe, including everything written above.
+
+A note on this file's history: several sections here were written confidently and later reversed
+within the same session — the route-table verdict twice, and the "v58 is a regression" claim. The
+reversals are kept visible rather than tidied away, because the pattern (a strong offline result,
+confidently shipped, then undone by a measurement nobody had run) is the most reliable thing this
+project has taught.
