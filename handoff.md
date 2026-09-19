@@ -69,9 +69,10 @@ state['route'] = _R108_SHOP_ROUTES.get(shops,100) if use_new else _R110_OLD_SHOP
 The two branches are **mutually exclusive**, so each can be measured and changed independently —
 verified empirically, not just by reading (section 5).
 
-**The central constraint: a tape cannot react.** Every structural idea that failed did so because
-of this. You cannot change what a tape does without desynchronising every later step that depends
-on the farm state the earlier steps built.
+**The central constraint: a tape cannot react.** You cannot change what a tape does without
+desynchronising every later step that depends on the farm state the earlier steps built. This is the
+single biggest reason structural ideas fail here (5.A) — but not the only one, and section 5 groups
+the others, because assuming "it desyncs" hides the real cause more than once (5.E).
 
 `kaggle_environments` runs **the last callable in the module** — ours is `_y_agent_shopherd`. A
 wrapper appended after the chain bypasses all nine layers and scores exactly the 3,000 it started
@@ -319,62 +320,142 @@ Four grids, a per-pair breakdown, and a built-in correctness check — and the l
 
 ---
 
-## 5. Closed — do not retry
+## 5. Everything that was tried and did not work
 
-**Router**
-- The **yarn branch is not uniformly wrong** the way the non-yarn one was. Forcing route 0 there is
-  a wash (16W-14L-90T, +86) with `ICE_CREAM_SHOP/YARN_STORE` +4108 but `YARN_STORE/BAKERY` −5538.
-  Route 7 is the best of the constants tried (73.9% of decisive games over four grids, worst pair
-  −286 vs −5500 craters for routes 0 and 2) and is what v59 tests — but it is a tape-selection
-  change, so treat its offline numbers with section 3.1 in mind.
-- The two branches are independent: a yarn result measured on the route-124 base reproduces on the
-  table base (14W-4L vs 22W-4L), as the mutually-exclusive structure predicts.
-- Day-27 route switch: 40 of 41 routes have identical last-three-day tapes. Inert.
+Grouped by **why** it failed, because the reasons generalise and the list does not. Before trying
+anything new, find which of these five patterns it falls into — most new ideas are a repeat of one.
 
-**Advance-sell layer — now fully explored**
-- `_ADV_LOOK` 20/24/32/44 → 62%/44%/44%/42%, margins **+8 to +18 coins**. Closed.
-- `_ADV_FROM` 96 and 120 inert (48 ties of 50); 192 scores 80% by **+2 coins**. Closed.
-- `_ADV_TO` is already maximal (718).
-- `_ADV_GATE_ITEMS` is **already the correct set**. The widened horizon (`_adv_far`) only fires for
-  goods in this tuple. Adding EGG (54%), EGG+CARROT+TOMATO (54%) or CARROT+TOMATO (50%) is inert,
-  +0 ± 2 coins, 36-48 ties of 50. Retested deliberately because the original dismissal predated the
-  horizon win — it still holds, and the replay data says why: the top teams' price edge is +14%
-  MELON, +11.2% STRAWBERRY, +7.3% MILK, +6.4% WOOL and **~0% on EGG/TOMATO/WHEAT**. Selling a
+### 5.A The tape cannot be edited — anything that moves a scheduled action desynchronises it
+
+The agent replays a fixed 719-step tape (section 2). Every later step assumes the farm state the
+earlier steps built, so changing *what happens* breaks everything downstream. This killed:
+
+| attempt | result |
+|---|---|
+| drop the geese | 17.5%, −4,528 |
+| add one goose | −9,499 |
+| add one cow | catastrophic |
+| wheat → strawberry | 0W-40L, −161k |
+| wheat → melon | 0W-40L, −194k |
+| borrowed top-team tape from step 0 | 76,406 vs its own 163,274 |
+| same tape switched in at day 6 on a *matching* shop pair | 29,664 vs 182,400 |
+
+The harvested-tape result is the sharpest: a tape that scored 163,274 in its own game scores 76,406
+when replayed, because market prices are shared and its orders were timed against *its* opponent's
+selling. Matching the shop pair does not save it — steps 144+ assume the farm its own first six days
+built.
+
+**Rule: a tape is only meaningful as the continuation of the trajectory that produced it.** Do not
+transplant, splice or surgically edit one.
+
+### 5.B The layer never actually runs — check before tuning
+
+**`_v219` (the tomato-and-land investment) is dead code in every build ever shipped.** Its qualifier
+runs exactly once, on day 18, and `tomato_price_ok` fails because the tomato price is never
+≥ `CROP_MIN_PRICE=70`. **22 tuning configurations were measured against it and all came back
+negative — most were never running at all.** Forced on (price floor removed, zero hires) it commits,
+buys the land, plants nothing, and loses 107,567 vs 113,255.
+
+The same applies to the sheep layer (`sheep_commit_requests: 0` in telemetry).
+
+**Rule: before tuning any layer, confirm it fires.** `smoke.py <dir> <opp> <REPORT_NAME>` prints the
+telemetry counters for one game; `v219probe.py` tallies which guard blocks. A layer with zero
+activations will absorb unlimited tuning effort and return noise.
+
+### 5.C The parameter is already optimal, saturated, or inert
+
+The advance-sell layer is now **fully swept** — every constant, both flags, both bounds, the item
+set:
+
+```
+_ADV_LOOK      20/24/32/44 → 62%/44%/44%/42%    margins +8..+18 coins    closed
+_ADV_FROM      96, 120 inert (48 ties of 50); 192 → 80% by +2 coins      closed
+_ADV_TO        already maximal at 718                                    no headroom
+_ADV_LOOK_HI   32→44 is the one real gain; saturates ~45 (44 ≡ 48)       done
+_ADV_GATE      0.74-0.90 flat, ±15 coins                                 closed
+_ADV_GATE_WIN  16-32 flat                                                closed
+_ADV_BOOST     0.90-1.12 all worse (−548 at 1.12)                        closed
+_ADV_PROTECT   True → 4.0%, −325                                         closed
+_ADV_GATE_ITEMS  adding EGG / CARROT / TOMATO inert, +0 ± 2, 36-48 ties   already correct
+_LIQ_FROM      660-684 exactly inert                                     closed
+```
+
+Two of these are worth understanding rather than just recording:
+
+- **`_ADV_GATE_ITEMS` is already the right set** and cannot be improved by adding goods. The widened
+  horizon only fires for items in this tuple, and the replay data shows the top teams' price edge is
+  +14% MELON, +11.2% STRAWBERRY, +7.3% MILK, +6.4% WOOL and **~0% on EGG/TOMATO/WHEAT**. Selling a
   flat-curve good earlier gains nothing. The tuple already holds exactly the four steep-curve goods.
-- `_ADV_PROTECT=True` → 4.0% / −325.
-- `_ADV_GATE` 0.74-0.90 flat (±15 coins); `GATE_WIN` 16-32 flat; `BOOST` 0.90-1.12 all worse.
-- `LIQ_FROM` 660-684 **exactly inert** — the day-28 liquidation layer shipped in v55 does nothing,
-  because 40 of the 41 tapes already blanket-sell in the last three days.
+- **`_LIQ_FROM` is inert because the work is already done** — 40 of the 41 tapes already blanket-sell
+  (18,065 units) in the last three days, so the day-28 liquidation layer shipped in v55 has nothing
+  left to sweep.
 
-**Parcel splitting — actively harmful, monotonically**
-Caps of 30/45/60/75% of stock on the steep-curve goods score 0% / 14% / 32% / 36%
-(−537 / −348 / −199 / −183). The trend points at *no cap* being optimal.
-*Mechanism:* reward is final cash and **shed contents are worth zero at step 719**, while
-`_ADV_LOOK_HI=44` already spreads sales over 44 turns. We were already trickling; a cap only delays
-sales and risks ending holding worthless stock. Under-selling is punished absolutely; over-selling
-only costs price. The replay statistic (top teams sell a median 45% of stock per order vs the
-field's 50%) is real but does not transfer to an agent that already has a wide sell horizon.
+Also closed: `_ADV_BOOK`, sell_lead off, all `_RACE_HORIZON_*`, R37 horizon 6/8/12, all
+`_OPEN_STEP0` opening alternatives (0W-40L), day-27 route switch (40 of 41 routes have identical
+last-three-day tapes).
 
-**Land, labour and tapes**
-- **`_v219` is dead code in every build ever shipped.** Its qualifier runs exactly once, on day 18,
-  and `tomato_price_ok` fails — the tomato price is never ≥ `CROP_MIN_PRICE=70`. This explains why
-  22 earlier tuning configurations were all negative: most were never running. Forced on with zero
-  hires it commits, buys the land, plants nothing, and loses (107,567 vs 113,255). Diagnose with
-  `v219probe.py`.
-- **Borrowing idle hands — dead, for a precise reason.** `tapeidle.py`: the tape commands every hand
-  until step 712-718 (only route 1 frees one, at step 504). `tapegaps.py`: **87% of idle runs are
-  ≤4 turns**. A hand needs `2×distance+1` turns to leave, work a tile and return, so it reaches
-  exactly one adjacent square; the long runs are all on day 0 before hands are hired. It is *not*
-  that moving a hand desynchronises — the gaps are too short to go anywhere.
-- **Idle-hand replanting** — `rp_plants: 0`. The layer only sows the tile a hand already stands on,
-  and unlocked land is elsewhere on the board.
-- **Harvested tapes** — a tape that scored 163,274 in its own game scores 76,406 replayed (prices
-  are shared and its orders were timed against its own opponent). Switched in at day 6 on a
-  *matching* shop pair: 29,664 vs 182,400.
-- **Tape surgery, all catastrophic** — drop geese 17.5% / −4,528; +1 goose −9,499; +1 cow
-  catastrophic; wheat→strawberry 0W-40L / −161k; wheat→melon 0W-40L / −194k.
-- Also dead: hoarding, all `_OPEN_STEP0` alternatives, `_ADV_BOOK`, sell_lead off, all
-  `_RACE_HORIZON_*`, R37 horizon 6/8/12.
+### 5.D The replay statistic is real but does not transfer
+
+The 618-replay study of the 3120-3158 teams produced several true observations about what strong
+players do. Acting on them directly failed, because our agent's situation differs.
+
+- **Parcel splitting / "trickle, don't dump".** Top teams sell a median 45% of held stock per order
+  against the field's 50%. Capping our parcels at 30/45/60/75% scores **0% / 14% / 32% / 36%**
+  (−537 / −348 / −199 / −183) — monotonically worse, pointing at *no cap* as optimal.
+  *Why:* reward is final cash and **shed contents are worth zero at step 719**, while
+  `_ADV_LOOK_HI=44` already spreads sales over 44 turns. We were already trickling; a cap only
+  delays sales and risks ending holding worthless stock. Under-selling is punished absolutely,
+  over-selling only costs price.
+- **Hoarding for the endgame burst.** Top teams make a large share of their money in the final two
+  turns, so holding stock back looks attractive: 696 → 10.0%/−106; 672 → 2.0%/−1,096; through 717 →
+  6.0%/−872; 660 → 0.0%/−4,479. *Why:* their burst is a *consequence* of late-maturing tomato they
+  planted on day 18, not a selling decision. We have no tomato, so we are hoarding goods that were
+  already worth more earlier.
+
+**Rule: a statistic about what winners do is not a lever.** Ask what upstream difference produces it
+before copying the visible behaviour.
+
+### 5.E The board has no room, and the labour cannot be moved
+
+Our board at day 25 is **PLANT 58, PASTURE 17, LOCKED 25 — zero bare tiles**, against the top teams'
+14.6 locked. The obvious response (unlock land, use idle hands) fails twice over:
+
+- **Idle-hand replanting alone**: `rp_plants: 0`. The layer only sows the tile a hand already stands
+  on, and there are no bare tiles.
+- **Unlock + replant together** (the combination that should have fixed both): the unlocked land is
+  across the board from where the hands stand, so still `rp_plants: 0`.
+- **Borrowing idle hands at all**: `tapeidle.py` shows the tape commands every hand until step
+  712-718 (only route 1 frees one, at step 504). `tapegaps.py` shows **87% of idle runs are ≤4
+  turns**, and a hand needs `2×distance+1` turns to leave, work a tile and return — so it can reach
+  exactly one adjacent square. The long idle runs are all on day 0, before the hands are hired.
+
+**The constraint is not "moving a hand desynchronises the tape" — it is that the idle gaps are too
+short to walk anywhere and the free land is not adjacent.** That rules out every variant of this
+idea, not just the ones tried.
+
+### 5.F Two results that were wrong about the *measurement*, not the idea
+
+Kept separate because these are not closed on their merits — the experiments could not resolve them
+(section 3.0), and both are open if someone measures properly.
+
+- **Route table → constant route 124.** Offline it is the largest effect found anywhere in the
+  project: 66W-2L across 30 distinct shop layouts, +1,459 mean, replicated on four grids. On the
+  ladder v58 sits 137 below v57 — **inside the 256-point noise floor**, so unresolved.
+- **Yarn branch → route 7.** 73.9% of decisive games pooled over four grids; v59 sits 169 below v57,
+  also inside the noise. Note the yarn branch is *not* uniformly wrong the way the non-yarn one
+  appeared to be: forcing route 0 there is a wash (16W-14L-90T, +86) with `ICE_CREAM_SHOP/YARN_STORE`
+  at +4108 but `YARN_STORE/BAKERY` at −5538, while route 7's worst pair is only −286.
+
+The two router branches are independent (`... if use_new else ...`), verified empirically: a yarn
+result measured on the route-124 base reproduces on the table base (14W-4L vs 22W-4L). So each can
+be measured and changed on its own.
+
+### 5.G Public agents
+
+All 49 extracted agents were screened; **26 do not even load** (see 3.4). Of the 23 that do, none
+beat our builds: stock V47 86.7%, tetsutani 0W-30L, tuned beyond-48 2W-58L, `indarkarhana-2948-9`
+−33,652, and `auto-top1` — briefly thought stronger — loses to v58 on three of four grids. The
+public field is the same chassis we are on (3.8), so there is nothing to copy.
 
 ---
 
