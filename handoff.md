@@ -342,6 +342,16 @@ The reason it was missed for so long: the original hand sweep tried only 28 / 32
   *`af192` is a useful warning: an 80% win rate by a 2-coin margin in a 130,000-coin game is a
   rounding artifact, not an edge.* Judge magnitude, not just win rate — the one ladder-confirmed
   gain (LOOK_HI, +300 coins) bought +272 Elo; these are two orders of magnitude smaller.
+- **Parcel splitting is actively harmful, and monotonically** — retested on the v57 base against the
+  replay evidence that top teams sell a median 45% of stock per order vs the field's 50%.
+  Caps of 30/45/60/75% of stock on MELON/STRAWBERRY/MILK/WOOL score 0% / 14% / 32% / 36%
+  (−537 / −348 / −199 / −183). The trend points at *no cap* being optimal.
+  *Mechanism:* the reward is final cash and **shed contents are worth zero at step 719**, while
+  `_ADV_LOOK_HI=44` already spreads sales over 44 turns. We were already trickling; a cap only
+  delays sales and risks ending holding stock that scores nothing. Under-selling is punished
+  absolutely, over-selling only costs price. The replay statistic is real but does not transfer to
+  an agent that already has a wide sell horizon.
+- **`_ADV_TO` is already maximal (718)** — no headroom in the layer's upper step bound.
 - **Parameter tuning is exhausted.** GATE 0.74-0.90 flat (±15 coins); GATE_WIN 16-32 flat;
   `LIQ_FROM` 660-684 **exactly inert**; BOOST 0.90-1.12 all worse (−548 at 1.12).
   The day-28 liquidation layer shipped in v55 does nothing measurable — 40 of the 41 tapes already
