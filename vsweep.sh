@@ -11,7 +11,8 @@
 # Args: each "NAME BASE"
 cd "$(dirname "$0")"
 P=./venv/bin/python
-probe_hash() { $P probe.py 1700000 "$1" 2>/dev/null | awk '{print $5}'; }
+SEED=${SEED:-1700000}
+probe_hash() { $P probe.py "$SEED" "$1" 2>/dev/null | grep -o 'hash=[0-9a-f]*' | cut -d= -f2; }
 
 for spec in "$@"; do
   set -- $spec
@@ -20,11 +21,15 @@ for spec in "$@"; do
   $P smoke.py "$name/main.py" >/dev/null 2>&1 || { echo "$name SMOKE FAIL"; continue; }
   hv=$(probe_hash "$name")
   hb=$(probe_hash "$base")
+  if [ -z "$hv" ] || [ -z "$hb" ]; then
+    echo "$name PROBE FAIL (hv='$hv' hb='$hb') -- not scored"
+    continue
+  fi
   if [ "$hv" = "$hb" ]; then
     echo "$name INERT (plays identically to $base, hash $hv) -- not scored"
     continue
   fi
-  r=$(AB_WORKERS=3 $P ab.py "$name/main.py" tk4/main.py 20 1700000 2>/dev/null | grep games)
-  echo "$name vs tk4 | $r"
+  r=$(AB_WORKERS=3 $P ab.py "$name/main.py" tk4/main.py 20 "$SEED" 2>/dev/null | grep games)
+  echo "$name vs tk4 s$SEED | $r"
 done
 echo VSWEEP_DONE

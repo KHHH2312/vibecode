@@ -57,8 +57,10 @@ def main():
     for name in sys.argv[2:]:
         try:
             turns, sells, units, dig, cash = run(name, seed)
-            print("%-8s turns=%3d sells=%4d units=%5d  %s  cash=%.0f"
-                  % (name, turns, sells, units, dig, cash))
+            # No padded numerics: a caller that splits on whitespace must not
+            # have to count fields, or it ends up comparing a label to itself.
+            print("%-8s hash=%s turns=%d sells=%d units=%d cash=%.0f"
+                  % (name, dig, turns, sells, units, cash))
         except Exception as exc:
             print("%-8s FAILED %r" % (name, exc))
         sys.stdout.flush()
