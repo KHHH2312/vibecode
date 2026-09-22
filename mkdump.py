@@ -25,6 +25,8 @@ FROM = int(os.environ.get("FROM") or 240)
 FRAC = float(os.environ.get("FRAC") or 0.80)
 ITEMS = os.environ.get("ITEMS") or "WOOL,MELON,STRAWBERRY,MILK"
 CAP = int(os.environ.get("CAP") or 6)
+MOD = int(os.environ.get("MOD") or 1)
+REM = int(os.environ.get("REM") or 0)
 
 LAYER = '''
 
@@ -38,12 +40,15 @@ _RD_ITEMS = __ITEMS__
 _RD_FROM = __FROM__
 _RD_FRAC = __FRAC__
 _RD_CAP = __CAP__
+_RD_MOD = __MOD__
+_RD_REM = __REM__
 
 
 def agent(observation, configuration=None):
     action = _RD_PARENT(observation, configuration)
     try:
-        if int(observation.get("step", 0)) >= _RD_FROM:
+        _rd_step = int(observation.get("step", 0))
+        if _rd_step >= _RD_FROM and _rd_step % _RD_MOD == _RD_REM:
             mkt = [list(o) for o in (action.get("market") or []) if o]
             if len(mkt) < 10:
                 shed = ((observation.get("private") or {}).get("shed") or {})
@@ -84,11 +89,13 @@ def main():
     layer = (LAYER.replace("__ITEMS__", repr(items))
                   .replace("__FROM__", str(FROM))
                   .replace("__FRAC__", repr(FRAC))
-                  .replace("__CAP__", str(CAP)))
+                  .replace("__CAP__", str(CAP))
+                  .replace("__MOD__", str(MOD))
+                  .replace("__REM__", str(REM)))
     with open(dst, "a") as fh:
         fh.write(layer)
-    print("built %s from %s (FROM=%d FRAC=%.2f CAP=%d ITEMS=%s)"
-          % (out, SRC, FROM, FRAC, CAP, items))
+    print("built %s from %s (FROM=%d FRAC=%.2f CAP=%d MOD=%d REM=%d ITEMS=%s)"
+          % (out, SRC, FROM, FRAC, CAP, MOD, REM, items))
 
 
 main()
