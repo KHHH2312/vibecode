@@ -78,13 +78,29 @@ kaggle_submission_agent = agent
 '''
 
 
+
+def _unique_prefix(src_text, base):
+    """A layer global that appears nowhere in the parent source."""
+    cand = base
+    n = 1
+    while cand in src_text:
+        n += 1
+        cand = "%s%d" % (base, n)
+    return cand
+
+
 def main():
     out = sys.argv[1]
     os.makedirs(out, exist_ok=True)
     dst = os.path.join(out, "main.py")
     shutil.copy(SRC, dst)
+    layer = LAYER.replace("__ALSO_SEED__", "True" if ALSO_SEED else "False")
+    src_text = open(dst).read()
+    tag = _unique_prefix(src_text, "_PF_")
+    layer = layer.replace("_PF_", tag)
+    assert tag + "PARENT" not in src_text, tag
     with open(dst, "a") as fh:
-        fh.write(LAYER.replace("__ALSO_SEED__", "True" if ALSO_SEED else "False"))
+        fh.write(layer)
     print("built %s from %s (ALSO_SEED=%s)" % (out, SRC, ALSO_SEED))
 
 

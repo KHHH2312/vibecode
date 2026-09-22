@@ -7,6 +7,8 @@ cd "$(dirname "$0")"
 D="$1"; MSG="$2"
 test -f "$D/main.py"
 ./venv/bin/python -c "import ast,sys; ast.parse(open('$D/main.py').read()); print('syntax ok')"
+# A build that does not load forfeits every game, so never ship one unplayed.
+./venv/bin/python smoke.py "$D/main.py"
 T="$(mktemp -d)"
 cp "$D/main.py" "$T/main.py"
 tar -czf "sub_$(basename $D).tar.gz" -C "$T" main.py
