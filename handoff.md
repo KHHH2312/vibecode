@@ -3,6 +3,16 @@
 Written overnight 2026-09-19. Competition ends ~2026-09-28. Goal: 3100+ Elo.
 Kaggle user `khalid000000`; credentials at `~/.kaggle/kaggle.json` — never transmit them anywhere.
 
+> **Superseded in part — read `findings-2026-09-22.md` first.**
+> Section 3 of this file (methodology) still stands and is still the most
+> important thing here. Sections 1, 4 and 6 are stale: the v43/V39 lineage that
+> produced v55–v61 below loses to the Metav4/V61 line by 1,732 coins a game and
+> has been abandoned, and the diagnosis has changed. Peer ladder games are
+> decided by a median of **$80** out of ~$99,000, so the game is a photo finish
+> and the lever is a few hundred reliable coins, not a better strategy.
+> The 22 Sep file carries the engine economics, the current builds and the
+> measurements that replace this one.
+
 **Read section 3 (Methodology) before trusting any number in this file or producing a new one.**
 Most of the wasted effort in this project came from believing measurements that did not predict the
 ladder. Section 3 records which measurements were tried, how each one failed, and — in 3.0 — why the
